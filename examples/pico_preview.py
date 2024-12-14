@@ -28,9 +28,9 @@ home_page: Element = g.html(lang='en').add(
                         g.summary(role="button", class_="secondary").add('Theme'),
                         g.ul().add(
                             g.li().add(
-                                g.a(href="#", data_theme_switcher="auto").add('Auto'),
-                                g.a(href="#", data_theme_switcher="light").add('Light'),
-                                g.a(href="#", data_theme_switcher="dark").add('Dark'),
+                                a0 := g.a(href="#", data_theme_switcher="auto").add('Auto'),
+                                a1 := g.a(href="#", data_theme_switcher="light").add('Light'),
+                                a2 := g.a(href="#", data_theme_switcher="dark").add('Dark'),
                             )
                         )
                     )
@@ -41,6 +41,9 @@ home_page: Element = g.html(lang='en').add(
 )
 
 print(home_page)
+print(a0)
+print(a1)
+print(a2)
 
 with g.html(lang='en') as home_page:
     with g.head():
@@ -67,15 +70,18 @@ with g.html(lang='en') as home_page:
 
                         with g.ul():
                             with g.li():
-                                g.a(href="#", data_theme_switcher="auto").add('Auto')
-                                g.a(href="#", data_theme_switcher="light").add('Light')
-                                g.a(href="#", data_theme_switcher="dark").add('Dark')
+                                a0 = g.a(href="#", data_theme_switcher="auto").add('Auto')
+                                a1 = g.a(href="#", data_theme_switcher="light").add('Light')
+                                a2 = g.a(href="#", data_theme_switcher="dark").add('Dark')
 
     print(home_page)
+    print(a0)
+    print(a1)
+    print(a2)
 
 # # router
 # g.route('/', home_page)
 # app = g.get_app()
-#`~
+#
 # if __name__ == '__main__':
 #     g.run_app(host='0.0.0.0', port=5000)

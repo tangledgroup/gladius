@@ -38,13 +38,13 @@ class Element(metaclass=ElementType):
 
 class TextNode(Element):
     tag = None
-    content: str
+    text_content: str
 
 
-    def __init__(self, ctx: BaseGladius, content: str):
+    def __init__(self, ctx: BaseGladius, text_content: str):
         super().__init__()
         self.ctx = ctx
-        self.content = content
+        self.text_content = text_content
 
 
     def __repr2__(self, ident: int=0) -> str:
@@ -52,7 +52,7 @@ class TextNode(Element):
        text.append(' ' * ident)
        text.append('<')
        text.append(self.__class__.__name__)
-       text.append(f' content={self.content!r}')
+       text.append(f' text_content={self.text_content!r}')
        text.append('>')
        text = ''.join(text)
        return text
