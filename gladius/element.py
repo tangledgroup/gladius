@@ -38,8 +38,8 @@ class Element(metaclass=ElementType):
 
 class TextNode(Element):
     tag = None
+    void_element = False
     text_content: str
-
 
     def __init__(self, ctx: BaseGladius, text_content: str):
         super().__init__()
@@ -47,7 +47,7 @@ class TextNode(Element):
         self.text_content = text_content
 
 
-    def __repr2__(self, ident: int=0) -> str:
+    def __repr__(self, ident: int=0) -> str:
        text: list[str] | str = []
        text.append(' ' * ident)
        text.append('<')
@@ -58,18 +58,15 @@ class TextNode(Element):
        return text
 
 
-    __repr__ = __repr2__
-
-
 class VoidElement(Element):
-    void_element: bool = True
+    void_element = True
 
 
     def __init__(self, /, **kwargs):
         super().__init__(**kwargs)
 
 
-    def __repr2__(self, ident: int=0) -> str:
+    def __repr__(self, ident: int=0) -> str:
         text: list[str] | str = []
         text.append(' ' * ident)
         text.append('<')
@@ -83,12 +80,9 @@ class VoidElement(Element):
         return text
 
 
-    __repr__ = __repr2__
-
-
 
 class ContainerElement(Element):
-    void_element: bool = False
+    void_element = False
     children: list[Element | str]
 
 
@@ -97,7 +91,7 @@ class ContainerElement(Element):
         self.children = []
 
 
-    def __repr2__(self, ident: int=0) -> str:
+    def __repr__(self, ident: int=0) -> str:
         text: list[str] | str = []
         text.append(' ' * ident)
         text.append('<')
@@ -112,7 +106,7 @@ class ContainerElement(Element):
             text.append('\n')
 
         for n in self.children:
-            text.append(n.__repr2__(ident + 2))
+            text.append(n.__repr__(ident + 2))
             text.append(',\n')
 
         text.append(' '  * ident)
@@ -121,15 +115,19 @@ class ContainerElement(Element):
         return text
 
 
-    __repr__ = __repr2__
-
-
     def add(self, *args) -> 'Element':
         assert all(isinstance(n, (Element, str)) for n in args)
 
         if self.children is None:
             self.children = []
 
-        new_args: list[Element] = [TextNode(self, n) if isinstance(n, str) else n for n in args]
+        new_args: list[Element] = []
+
+        for n in args:
+            if isinstance(n, str):
+                n = TextNode(ctx=self.ctx, text_content=n)
+
+            new_args.append(n)
+
         self.children.extend(new_args)
         return self
