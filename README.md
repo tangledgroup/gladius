@@ -71,29 +71,13 @@ pip install gladius
 ## Run Examples
 
 ```bash
-git clone https://github.com/mtasic85/gladius.git
+git clone https://github.com/tangledgroup/gladius.git
 cd gladius
 python -m venv venv
 source venv/bin/activate
-pip install .
+pip install -U -r requirements.txt
 ```
 
 ```bash
-# https://picocss.com
-gunicorn examples.pico_0:app --reload --bind '0.0.0.0:5000' --worker-class aiohttp.GunicornWebWorker
-
-# https://daisyui.com
-gunicorn examples.daisyui_layout_0:app --reload --bind '0.0.0.0:5000' --worker-class aiohttp.GunicornWebWorker
-
-# daisyui hello world 0
-gunicorn examples.hello_world_0:app --reload --bind '0.0.0.0:5000' --worker-class aiohttp.GunicornWebWorker
-
-# daisyui hello world 1
-gunicorn examples.hello_world_1:app --reload --bind '0.0.0.0:5000' --worker-class aiohttp.GunicornWebWorker
-
-# daisyui hello world 2
-gunicorn examples.hello_world_1:app --reload --bind '0.0.0.0:5000' --worker-class aiohttp.GunicornWebWorker
-
-# daisyui multi page 0
-gunicorn examples.multi_page_0:app --reload --bind '0.0.0.0:5000' --worker-class aiohttp.GunicornWebWorker
+watchmedo auto-restart --directory=./ --pattern="*.py;*.html;*.hbs;*.css;*.js" --recursive -- python -B examples/pico_preview/pico_preview.py```
 ```

@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "gladius"
+version = "0.2.0"
+description = "Gladius aka \"gladius\" is a full-stack web framework facilitating web application development exclusively in pure Python, eliminating the need for HTML, CSS, or JavaScript. It is built for those who prefer to use Python, providing access to features typically found in modern web frameworks."
+authors = ["Marko Tasic <mtasic85@gmail.com>", "Tangled Group, Inc <info@tangledgroup.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+attrs = "^24.2.0"
+cattrs = "^24.1.2"
+aiohttp = {extras = ["speedups"], version = "^3.11.10"}
+watchdog = {extras = ["watchmedo"], version = "^6.0.0"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
