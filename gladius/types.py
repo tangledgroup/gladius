@@ -2,4 +2,5 @@ __all__ = ['BaseGladius']
 
 
 class BaseGladius:
-    pass
+    element_types: dict
+    element_scopes: list

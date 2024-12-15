@@ -44,6 +44,10 @@ print(home_page)
 print(a0)
 print(a1)
 print(a2)
+print(home_page.ctx)
+print(a0.ctx)
+print(a1.ctx)
+print(a2.ctx)
 
 with g.html(lang='en') as home_page:
     with g.head():

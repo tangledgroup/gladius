@@ -7,6 +7,11 @@ from .defs import VOID_TAGS, CONTAINER_TAGS
 
 
 class ElementType(type):
+    ctx: BaseGladius
+    tag: str | None
+    void_element: bool
+
+
     def __getattr__(cls, tag: str) -> 'ElementType':
         assert tag in VOID_TAGS or tag in CONTAINER_TAGS, f'unsupported tag {tag!r}'
 
@@ -29,12 +34,18 @@ class Element(metaclass=ElementType):
     # Void elements only have a start tag;
     # end tags must not be specified for void elements.
     # https://developer.mozilla.org/en-US/docs/Glossary/Void_element
-    void_element: bool = False
+    void_element: bool
 
 
     def __init__(self, /, **kwargs):
         self.attrs = dict(kwargs)
 
+
+    def __repr2__(self, indet: int=0):
+        return super().__repr__()
+
+    def __repr__(self):
+        return self.__repr2__()
 
 class TextNode(Element):
     tag = None
@@ -47,7 +58,7 @@ class TextNode(Element):
         self.text_content = text_content
 
 
-    def __repr__(self, ident: int=0) -> str:
+    def __repr2__(self, ident: int=0) -> str:
        text: list[str] | str = []
        text.append(' ' * ident)
        text.append('<')
@@ -58,6 +69,10 @@ class TextNode(Element):
        return text
 
 
+    def __repr__(self):
+        return self.__repr2__()
+
+
 class VoidElement(Element):
     void_element = True
 
@@ -66,7 +81,7 @@ class VoidElement(Element):
         super().__init__(**kwargs)
 
 
-    def __repr__(self, ident: int=0) -> str:
+    def __repr2__(self, ident: int=0) -> str:
         text: list[str] | str = []
         text.append(' ' * ident)
         text.append('<')
@@ -80,18 +95,26 @@ class VoidElement(Element):
         return text
 
 
+    def __repr__(self):
+        return self.__repr2__()
+
+
 
 class ContainerElement(Element):
     void_element = False
-    children: list[Element | str]
+    children: list[Element]
 
 
     def __init__(self, /, **kwargs):
         super().__init__(**kwargs)
         self.children = []
 
+        if self.ctx.element_scopes:
+            parent_element: ContainerElement = self.ctx.element_scopes[-1]
+            parent_element.add(self)
 
-    def __repr__(self, ident: int=0) -> str:
+
+    def __repr2__(self, ident: int=0) -> str:
         text: list[str] | str = []
         text.append(' ' * ident)
         text.append('<')
@@ -106,13 +129,28 @@ class ContainerElement(Element):
             text.append('\n')
 
         for n in self.children:
-            text.append(n.__repr__(ident + 2))
+            text.append(n.__repr2__(ident + 2))
             text.append(',\n')
 
         text.append(' '  * ident)
         text.append(']>')
         text = ''.join(text)
         return text
+
+
+    def __repr__(self):
+        return self.__repr2__()
+
+
+    def __enter__(self):
+        assert isinstance(self, ContainerElement), "only container elements can contain other elements"
+        self.ctx.element_scopes.append(self)
+        return self
+
+
+    def __exit__(self, *exs):
+        element: Element = self.ctx.element_scopes.pop()
+        return element
 
 
     def add(self, *args) -> 'Element':
