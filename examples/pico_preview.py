@@ -8,7 +8,7 @@ with g.html(lang='en') as home_page:
         g.meta(charset="utf-8")
         g.meta(name="viewport", content="width=device-width, initial_scale=1")
         g.meta(name="color-scheme", content="light dark")
-        g.title().add("Preview • Pico CSS")
+        g.title("Preview • Pico CSS")
         g.meta(name="description", content="A pure HTML example, without dependencies.")
 
         g.link(rel="stylesheet",
@@ -17,20 +17,20 @@ with g.html(lang='en') as home_page:
     with g.body():
         with g.header(class_="container"):
             with g.hgroup():
-                g.h1().add('Pico')
-                g.p().add('A pure HTML example, without dependencies.')
+                g.h1('Pico')
+                g.p('A pure HTML example, without dependencies.')
 
         with g.nav():
             with g.ul():
                 with g.li():
                     with g.details(class_="dropdown"):
-                        g.summary(role="button", class_="secondary").add('Theme')
+                        g.summary('Theme', role="button", class_="secondary")
 
                         with g.ul():
                             with g.li():
-                                a0 = g.a(href="#", data_theme_switcher="auto").add('Auto')
-                                a1 = g.a(href="#", data_theme_switcher="light").add('Light')
-                                a2 = g.a(href="#", data_theme_switcher="dark").add('Dark')
+                                a0: Element = g.a('Auto', href="#", data_theme_switcher="auto")
+                                a1: Element = g.a('Light', href="#", data_theme_switcher="light")
+                                a2: Element = g.a('Dark', href="#", data_theme_switcher="dark")
 
 print(home_page)
 print(a0)

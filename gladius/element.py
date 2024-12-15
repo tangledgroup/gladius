@@ -105,9 +105,13 @@ class ContainerElement(Element):
     children: list[Element]
 
 
-    def __init__(self, /, **kwargs):
+    def __init__(self, text_content: str | None = None, /, **kwargs):
         super().__init__(**kwargs)
         self.children = []
+
+        if text_content is not None:
+            text_node: Element = TextNode(ctx=self.ctx, text_content=text_content)
+            self.children.append(text_node)
 
         if self.ctx.element_scopes:
             parent_element: ContainerElement = self.ctx.element_scopes[-1]
