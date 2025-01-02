@@ -1,7 +1,7 @@
 __all__ = ['ElementType', 'Element', 'Text', 'VoidElement', 'ContainerElement']
 
 import json
-from typing import Any
+from typing import Any, Optional
 
 from .types import BaseGladius
 from .defs import VOID_TAGS, CONTAINER_TAGS
@@ -38,8 +38,13 @@ class Element(metaclass=ElementType):
     void_element: bool
 
 
-    def __init__(self, /, inline: bool=False, **kwargs):
+    def __init__(self, /, inline: bool=False, extra_attrs: Optional[dict]=None, **kwargs):
         self.attrs = dict(kwargs)
+
+        if extra_attrs:
+            self.attrs.update(extra_attrs)
+
+        # print(self.attrs)
 
         if not inline and self.ctx.element_scopes:
             parent_element: ContainerElement = self.ctx.element_scopes[-1]

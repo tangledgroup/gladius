@@ -1,5 +1,5 @@
 from aiohttp import web
-from gladius import Gladius, Element
+from gladius import Gladius
 
 g = Gladius()
 
@@ -11,8 +11,7 @@ with g.html(lang='en') as home_page:
         g.meta(name="color-scheme", content="light dark")
         g.title("Preview • Pico CSS")
         g.meta(name="description", content="A pure HTML example, without dependencies.")
-
-        # g.link(rel="stylesheet", href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.0.6/css/pico.min.css")
+        g.link(rel='icon', href='/img/favicon.png', type='image/png')
         g.link(rel="stylesheet", href="css/pico.min.css")
 
     with g.body():
