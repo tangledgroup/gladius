@@ -12,8 +12,8 @@ with g.html(lang='en') as home_page:
         g.title("Preview • Pico CSS")
         g.meta(name="description", content="A pure HTML example, without dependencies.")
 
-        g.link(rel="stylesheet",
-               href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.0.6/css/pico.min.css")
+        # g.link(rel="stylesheet", href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.0.6/css/pico.min.css")
+        g.link(rel="stylesheet", href="css/pico.min.css")
 
     with g.body():
         with g.header(class_="container"):
@@ -380,25 +380,23 @@ with g.html(lang='en') as home_page:
                     g.button('Cancel', role="button", class_="secondary", data_target="modal-example", onclick="toggleModal(event)")
                     g.button('Confirm', autofocus="autofocus", data_target="modal-example", onclick="toggleModal(event)")
 
-        # g.script(src="js/minimal-theme-switcher.js")
-        with g.script():
-            with open('examples/pico_preview/js/minimal-theme-switcher.js') as f:
-                g.text(f.read())
-
-        # g.script(src="js/modal.js")
-        with g.script():
-            with open('examples/pico_preview/js/modal.js') as f:
-                g.text(f.read())
+        g.script(src="js/minimal-theme-switcher.js")
+        g.script(src="js/modal.js")
 
 
-# print(home_page)
-print(home_page.render())
+# server
+app = web.Application()
+routes = web.RouteTableDef()
+routes.static('/js', 'examples/pico_preview/js')
+routes.static('/css', 'examples/pico_preview/css')
 
-# # server
-# app = web.Application()
-# routes = web.RouteTableDef()
 
-# # async def
+@routes.get('/')
+async def variable_handler(request):
+    text = home_page.render()
+    headers = {'content-type': 'text/html'}
+    return web.Response(status=200, text=text, headers=headers)
 
-# app.add_routes(routes)
-# web.run_app(app, host='0.0.0.0', port=5000)
+
+app.add_routes(routes)
+web.run_app(app, host='0.0.0.0', port=5000)
