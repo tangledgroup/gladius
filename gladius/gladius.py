@@ -1,5 +1,5 @@
 from .types import BaseGladius
-from .element import ElementType, Element, ContainerElement
+from .element import ElementType, Element, ContainerElement, Text
 
 
 class Gladius(BaseGladius):
@@ -8,7 +8,10 @@ class Gladius(BaseGladius):
 
 
     def __init__(self):
-        self.element_types = {}
+        ctx_Text: ElementType = ElementType('Text', (Text,), {'ctx': self})
+        ctx_Text.ctx = self
+
+        self.element_types = {'text': ctx_Text}
         self.element_scopes = []
 
 
@@ -17,7 +20,6 @@ class Gladius(BaseGladius):
 
         if tag in self.element_types:
             element_type = self.element_types[tag]
-            return element_type
         else:
             element_type = getattr(Element, tag)
             element_type.ctx = self

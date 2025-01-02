@@ -1,5 +1,6 @@
-__all__ = ['ElementType', 'Element', 'VoidElement', 'ContainerElement']
+__all__ = ['ElementType', 'Element', 'Text', 'VoidElement', 'ContainerElement']
 
+import json
 from typing import Any
 
 from .types import BaseGladius
@@ -37,30 +38,55 @@ class Element(metaclass=ElementType):
     void_element: bool
 
 
-    def __init__(self, /, **kwargs):
+    def __init__(self, /, inline: bool=False, **kwargs):
         self.attrs = dict(kwargs)
+
+        if not inline and self.ctx.element_scopes:
+            parent_element: ContainerElement = self.ctx.element_scopes[-1]
+            parent_element.add(self)
 
 
     def __repr2__(self, indet: int=0):
         return super().__repr__()
 
-    def __repr__(self):
+
+    def __repr__(self) -> str:
         return self.__repr2__()
 
-class TextNode(Element):
+
+    def __len__(self) -> int:
+        return 0
+
+
+    def render(self, indent: int=0) -> str:
+        raise NotImplementedError('override render method')
+
+
+    def render_attr_key(self, key: str) -> str:
+        if key == 'class_':
+            return 'class'
+
+        return key.replace('_', '-')
+
+
+    def render_attr_value(self, value: Any) -> str:
+        return json.dumps(str(value))
+
+
+class Text(Element):
     tag = None
-    void_element = False
+    void_element = True
     text_content: str
 
-    def __init__(self, ctx: BaseGladius, text_content: str):
-        super().__init__()
-        self.ctx = ctx
+
+    def __init__(self, text_content: str, inline: bool=False):
+        super().__init__(inline=inline)
         self.text_content = text_content
 
 
-    def __repr2__(self, ident: int=0) -> str:
+    def __repr2__(self, indent: int=0) -> str:
        text: list[str] | str = []
-       text.append(' ' * ident)
+       text.append(' ' * indent)
        text.append('<')
        text.append(self.__class__.__name__)
        text.append(f' text_content={self.text_content!r}')
@@ -69,8 +95,20 @@ class TextNode(Element):
        return text
 
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__repr2__()
+
+
+    def __len__(self) -> int:
+        return len(self.text_content)
+
+
+    def __getitem__(self, index: int) -> str:
+        return self.text_content[index]
+
+
+    def render(self, indent : int=0) -> str:
+        return (' ' * indent) + self.text_content
 
 
 class VoidElement(Element):
@@ -81,14 +119,15 @@ class VoidElement(Element):
         super().__init__(**kwargs)
 
 
-    def __repr2__(self, ident: int=0) -> str:
+    def __repr2__(self, indent: int=0) -> str:
         text: list[str] | str = []
-        text.append(' ' * ident)
+        text.append(' ' * indent)
         text.append('<')
         text.append(self.__class__.__name__)
 
         for k, v in self.attrs.items():
-            text.append(f' {k}={v!r}')
+            # text.append(f' {k}={v!r}')
+            text.append(f' {self.render_attr_key(k)}={self.render_attr_value(v)}')
 
         text.append('>')
         text = ''.join(text)
@@ -99,33 +138,56 @@ class VoidElement(Element):
         return self.__repr2__()
 
 
+    def __len__(self) -> int:
+        return 0
+
+
+    def render(self, indent : int=0) -> str:
+        text: list[str] | str = []
+        text.append(' ' * indent)
+        text.append('<')
+        text.append(self.__class__.__name__)
+
+        for k, v in self.attrs.items():
+            # text.append(f' {k}={v!r}')
+            text.append(f' {self.render_attr_key(k)}={self.render_attr_value(v)}')
+
+        text.append('/>')
+        text = ''.join(text)
+        return text
+
+
 
 class ContainerElement(Element):
     void_element = False
     children: list[Element]
 
 
-    def __init__(self, text_content: str | None = None, /, **kwargs):
+    def __init__(self, text_content: str | None=None, /, **kwargs):
         super().__init__(**kwargs)
         self.children = []
 
-        if text_content is not None:
-            text_node: Element = TextNode(ctx=self.ctx, text_content=text_content)
+        # print('!!! [0] self', self, text_content, type(text_content), kwargs)
+        # if text_content is not None:
+        # if not (text_content is None or isinstance(text_content, str)):
+        #     raise ValueError(text_content)
+
+        if text_content:
+            # print('----')
+            # text_node: Element = Text(ctx=self.ctx, text_content=text_content)
+            text_node: Element = self.ctx.text(text_content, inline=True) # type: ignore
+            # print('!!! [1] self', self, text_content, kwargs, text_node)
             self.children.append(text_node)
 
-        if self.ctx.element_scopes:
-            parent_element: ContainerElement = self.ctx.element_scopes[-1]
-            parent_element.add(self)
 
-
-    def __repr2__(self, ident: int=0) -> str:
+    def __repr2__(self, indent: int=0) -> str:
         text: list[str] | str = []
-        text.append(' ' * ident)
-        text.append('<')
-        text.append(self.__class__.__name__)
+        text.append(' ' * indent)
+        text.append(f'<{self.__class__.__name__}')
 
         for k, v in self.attrs.items():
-            text.append(f' {k}={v!r}')
+            # text.append(f' {k}={v!r}')
+            text.append(f' {self.render_attr_key(k)}={self.render_attr_value(v)}')
 
         text.append(' children=[')
 
@@ -133,10 +195,12 @@ class ContainerElement(Element):
             text.append('\n')
 
         for n in self.children:
-            text.append(n.__repr2__(ident + 2))
+            text.append(n.__repr2__(indent + 2))
             text.append(',\n')
 
-        text.append(' '  * ident)
+        if self.children:
+            text.append(' ' * indent)
+
         text.append(']>')
         text = ''.join(text)
         return text
@@ -146,13 +210,24 @@ class ContainerElement(Element):
         return self.__repr2__()
 
 
+    def __len__(self) -> int:
+        return len(self.children)
+
+
+    def __getitem__(self, index: int) -> Element:
+        return self.children[index]
+
+
     def __enter__(self):
         assert isinstance(self, ContainerElement), "only container elements can contain other elements"
         self.ctx.element_scopes.append(self)
         return self
 
 
-    def __exit__(self, *exs):
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is not None:
+            raise exc_value.with_traceback(traceback)
+
         element: Element = self.ctx.element_scopes.pop()
         return element
 
@@ -167,9 +242,35 @@ class ContainerElement(Element):
 
         for n in args:
             if isinstance(n, str):
-                n = TextNode(ctx=self.ctx, text_content=n)
+                n = self.ctx.text(n, inline=True) # type: ignore
 
             new_args.append(n)
 
         self.children.extend(new_args)
         return self
+
+
+    def render(self, indent : int=0) -> str:
+        text: list[str] | str = []
+        text.append(' ' * indent)
+        text.append(f'<{self.__class__.__name__}')
+
+        for k, v in self.attrs.items():
+            # text.append(f' {k}={v!r}')
+            text.append(f' {self.render_attr_key(k)}={self.render_attr_value(v)}')
+
+        text.append('>')
+
+        if self.children:
+            text.append('\n')
+
+        for n in self.children:
+            text.append(n.render(indent + 2))
+            text.append('\n')
+
+        if self.children:
+            text.append(' ' * indent)
+
+        text.append(f'</{self.__class__.__name__}>')
+        text = ''.join(text)
+        return text
