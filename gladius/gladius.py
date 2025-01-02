@@ -9,9 +9,13 @@ class Gladius(BaseGladius):
 
     def __init__(self):
         ctx_Text: ElementType = ElementType('Text', (Text,), {'ctx': self})
-        ctx_Text.ctx = self
+        ctx_del: ElementType = ElementType('del', (ContainerElement,), {'ctx': self, 'tag': 'del'})
 
-        self.element_types = {'text': ctx_Text}
+        self.element_types = {
+            'text': ctx_Text,
+            'del_': ctx_del,
+        }
+
         self.element_scopes = []
 
 

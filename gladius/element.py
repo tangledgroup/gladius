@@ -65,6 +65,8 @@ class Element(metaclass=ElementType):
     def render_attr_key(self, key: str) -> str:
         if key == 'class_':
             return 'class'
+        elif key == 'for_':
+            return 'for'
 
         return key.replace('_', '-')
 
@@ -252,6 +254,10 @@ class ContainerElement(Element):
 
     def render(self, indent : int=0) -> str:
         text: list[str] | str = []
+
+        if self.tag == 'html':
+            text.append('<!DOCTYPE html>\n')
+
         text.append(' ' * indent)
         text.append(f'<{self.__class__.__name__}')
 
