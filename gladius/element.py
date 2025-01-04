@@ -1,7 +1,8 @@
 __all__ = ['ElementType', 'Element', 'Text', 'VoidElement', 'ContainerElement']
 
 import json
-from typing import Any, Optional
+import inspect
+from typing import Any, Optional, Callable
 
 from .types import BaseGladius
 from .defs import VOID_TAGS, CONTAINER_TAGS
@@ -38,11 +39,11 @@ class Element(metaclass=ElementType):
     void_element: bool
 
 
-    def __init__(self, /, inline: bool=False, extra_attrs: Optional[dict]=None, **kwargs):
+    def __init__(self, /, inline: bool=False, attrs: Optional[dict]=None, **kwargs):
         self.attrs = dict(kwargs)
 
-        if extra_attrs:
-            self.attrs.update(extra_attrs)
+        if attrs:
+            self.attrs.update(attrs)
 
         # print(self.attrs)
 
@@ -67,13 +68,36 @@ class Element(metaclass=ElementType):
         raise NotImplementedError('override render method')
 
 
-    def render_attr_key(self, key: str) -> str:
-        if key == 'class_':
-            return 'class'
-        elif key == 'for_':
-            return 'for'
+    def render_attrs(self) -> str:
+        text: list[str] | str = []
 
-        return key.replace('_', '-')
+        for k, v in self.attrs.items():
+            if v is None:
+                text.append(self.render_attr_key(k))
+            else:
+                text.append(f'{self.render_attr_key(k)}={self.render_attr_value(v)}')
+
+        text = ' '.join(text)
+        return text
+
+
+    def render_attr_key(self, key: str) -> str:
+        # alpinejs
+        if key.startswith('a__'):
+            key = key.replace('a__', '@', 1)
+        elif key.startswith('c__'):
+            key = key.replace('c__', ':', 1)
+
+        # alpinejs
+        if '__d__' in key:
+            key = key.replace('__d__', '.')
+
+        # python reserved keywords
+        if key.endswith('_'):
+            key = key[:-1]
+
+        key = key.replace('_', '-')
+        return key
 
 
     def render_attr_value(self, value: Any) -> str:
@@ -132,9 +156,11 @@ class VoidElement(Element):
         text.append('<')
         text.append(self.__class__.__name__)
 
-        for k, v in self.attrs.items():
-            # text.append(f' {k}={v!r}')
-            text.append(f' {self.render_attr_key(k)}={self.render_attr_value(v)}')
+        # for k, v in self.attrs.items():
+        #     text.append(f' {self.render_attr_key(k)}={self.render_attr_value(v)}')
+        if self.attrs:
+            text.append(' ')
+            text.append(self.render_attrs())
 
         text.append('>')
         text = ''.join(text)
@@ -155,9 +181,11 @@ class VoidElement(Element):
         text.append('<')
         text.append(self.__class__.__name__)
 
-        for k, v in self.attrs.items():
-            # text.append(f' {k}={v!r}')
-            text.append(f' {self.render_attr_key(k)}={self.render_attr_value(v)}')
+        # for k, v in self.attrs.items():
+        #     text.append(f' {self.render_attr_key(k)}={self.render_attr_value(v)}')
+        if self.attrs:
+            text.append(' ')
+            text.append(self.render_attrs())
 
         text.append('/>')
         text = ''.join(text)
@@ -167,23 +195,15 @@ class VoidElement(Element):
 
 class ContainerElement(Element):
     void_element = False
-    children: list[Element]
+    children: list[Element | Callable]
 
 
-    def __init__(self, text_content: str | None=None, /, **kwargs):
+    def __init__(self, text_content: str | None=None, children: Optional[list[Element | Callable]]=None, **kwargs):
         super().__init__(**kwargs)
-        self.children = []
-
-        # print('!!! [0] self', self, text_content, type(text_content), kwargs)
-        # if text_content is not None:
-        # if not (text_content is None or isinstance(text_content, str)):
-        #     raise ValueError(text_content)
+        self.children = children if children else []
 
         if text_content:
-            # print('----')
-            # text_node: Element = Text(ctx=self.ctx, text_content=text_content)
             text_node: Element = self.ctx.text(text_content, inline=True) # type: ignore
-            # print('!!! [1] self', self, text_content, kwargs, text_node)
             self.children.append(text_node)
 
 
@@ -192,9 +212,11 @@ class ContainerElement(Element):
         text.append(' ' * indent)
         text.append(f'<{self.__class__.__name__}')
 
-        for k, v in self.attrs.items():
-            # text.append(f' {k}={v!r}')
-            text.append(f' {self.render_attr_key(k)}={self.render_attr_value(v)}')
+        # for k, v in self.attrs.items():
+        #     text.append(f' {self.render_attr_key(k)}={self.render_attr_value(v)}')
+        if self.attrs:
+            text.append(' ')
+            text.append(self.render_attrs())
 
         text.append(' children=[')
 
@@ -202,6 +224,13 @@ class ContainerElement(Element):
             text.append('\n')
 
         for n in self.children:
+            if isinstance(n, Callable):
+                # if inspect.signature(n).parameters:
+                #     n = n(self)
+                # else:
+                #     n = n()
+                n = n(self)
+
             text.append(n.__repr2__(indent + 2))
             text.append(',\n')
 
@@ -222,7 +251,7 @@ class ContainerElement(Element):
 
 
     def __getitem__(self, index: int) -> Element:
-        return self.children[index]
+        return self.children[index] # type: ignore
 
 
     def __enter__(self):
@@ -266,9 +295,11 @@ class ContainerElement(Element):
         text.append(' ' * indent)
         text.append(f'<{self.__class__.__name__}')
 
-        for k, v in self.attrs.items():
-            # text.append(f' {k}={v!r}')
-            text.append(f' {self.render_attr_key(k)}={self.render_attr_value(v)}')
+        # for k, v in self.attrs.items():
+        #     text.append(f' {self.render_attr_key(k)}={self.render_attr_value(v)}')
+        if self.attrs:
+            text.append(' ')
+            text.append(self.render_attrs())
 
         text.append('>')
 
@@ -276,6 +307,13 @@ class ContainerElement(Element):
             text.append('\n')
 
         for n in self.children:
+            if isinstance(n, Callable):
+                # if inspect.signature(n).parameters:
+                #     n = n(self)
+                # else:
+                #     n = n()
+                n = n(self)
+
             text.append(n.render(indent + 2))
             text.append('\n')
 
