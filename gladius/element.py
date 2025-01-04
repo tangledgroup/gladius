@@ -1,7 +1,7 @@
 __all__ = ['ElementType', 'Element', 'Text', 'VoidElement', 'ContainerElement']
 
 import json
-import inspect
+# import inspect
 from typing import Any, Optional, Callable
 
 from .types import BaseGladius

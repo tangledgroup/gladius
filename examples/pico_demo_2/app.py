@@ -164,7 +164,7 @@ def rentals_page(parent):
 
 
 def live_data_page(parent):
-    with g.table(id='live-data') as el:
+    with g.table(id='live-data', x_data="webSocketComponent") as el:
         with g.thead():
             with g.tr():
                 g.th('Planet', scope='col')
@@ -173,7 +173,12 @@ def live_data_page(parent):
                 g.th('Orbit (days)', scope='col')
 
         with g.tbody():
-            pass
+            with g.template(x_for='message in messages', c_key='message.id'):
+                with g.tr():
+                    g.th(x_text='message.row[0]')
+                    g.th(x_text='message.row[1]')
+                    g.th(x_text='message.row[2]')
+                    g.th(x_text='message.row[3]')
 
     return el
 
@@ -194,6 +199,35 @@ def app_page(parent=None):
             g.script(src='/js/router.min.js') # https://github.com/pinecone-router/router
             g.script(src='/js/alpine.min.js', defer=None)
             g.script(src='/js/nprogress.js')
+
+            g.script('''
+                function webSocketComponent() {
+                    return {
+                        messages: [],
+                        init() {
+                            const ws = new WebSocket(`ws://${location.host}/api/live-data-stream`);
+
+                            ws.addEventListener('message', (event) => {
+                                const data = JSON.parse(event.data);
+                                this.messages.push(data);
+                            });
+
+                            ws.addEventListener('open', () => {
+                                console.log('WebSocket connection established.');
+                                ws.send(JSON.stringify({}));
+                            });
+
+                            ws.addEventListener('close', () => {
+                                console.log('WebSocket connection closed.');
+                            });
+
+                            ws.addEventListener('error', (error) => {
+                                console.error('WebSocket error:', error);
+                            });
+                        }
+                    };
+                }
+            ''')
 
         with g.body(x_data=None):
             with g.main(class_='container'):
@@ -229,12 +263,15 @@ async def send_live_data(ws):
         if ws.closed:
             break
 
-        data = [
-            randint(0, 100),
-            randint(0, 100),
-            randint(0, 100),
-            randint(0, 100),
-        ]
+        data = {
+            'id': str(randint(0, 100)),
+            'row': [
+                randint(0, 100),
+                randint(0, 100),
+                randint(0, 100),
+                randint(0, 100),
+            ]
+        }
 
         try:
             await ws.send_json(data)
