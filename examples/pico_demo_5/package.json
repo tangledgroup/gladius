@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "@micropython/micropython-webassembly-pyscript": "^1.24.1",
+    "@picocss/pico": "^2.0.6",
+    "@pyscript/core": "^0.6.24",
+    "alpinejs": "^3.14.8",
+    "axios": "^1.7.9",
+    "nprogress": "^0.2.0",
+    "pinecone-router": "^5.0.0"
+  }
+}

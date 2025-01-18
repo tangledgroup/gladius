@@ -15,7 +15,11 @@ class ElementType(type):
 
 
     def __getattr__(cls, tag: str) -> 'ElementType':
-        assert tag in VOID_TAGS or tag in CONTAINER_TAGS, f'unsupported tag {tag!r}'
+        assert tag in VOID_TAGS or tag in CONTAINER_TAGS or '_' in tag, f'unsupported tag {tag!r}'
+
+        # web component / pyscript
+        if '_' in tag:
+            tag = tag.replace('_', '-')
 
         et: ElementType = ElementType(
             tag,
@@ -62,6 +66,15 @@ class Element(metaclass=ElementType):
 
     def __len__(self) -> int:
         return 0
+
+
+    def __enter__(self):
+        return self
+
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is not None:
+            raise exc_value.with_traceback(traceback)
 
 
     def render(self, indent: int=0) -> str:
@@ -264,8 +277,7 @@ class ContainerElement(Element):
         if exc_type is not None:
             raise exc_value.with_traceback(traceback)
 
-        element: Element = self.ctx.element_scopes.pop()
-        return element
+        _: Element = self.ctx.element_scopes.pop()
 
 
     def add(self, *args) -> 'Element':
