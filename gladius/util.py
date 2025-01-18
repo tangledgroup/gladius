@@ -2,6 +2,8 @@ __all__ = [
     'make_page',
 ]
 
+from pathlib import Path
+
 from .element import Element
 from .gladius import Gladius
 
@@ -78,3 +80,7 @@ def make_page(
                     head.add(n)
 
     return el
+
+
+def compile_npm_package(pkg: str | list | dict) -> str | Path:
+    pass

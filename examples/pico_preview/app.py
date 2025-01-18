@@ -12,7 +12,7 @@ with g.html(lang='en') as home_page:
         g.title("Preview • Pico CSS")
         g.meta(name="description", content="A pure HTML example, without dependencies.")
         g.link(rel='icon', href='/img/favicon.png', type='image/png')
-        g.link(rel="stylesheet", href="css/pico.min.css")
+        g.link(rel="stylesheet", href="/css/pico.min.css")
 
     with g.body():
         with g.header(class_="container"):
@@ -379,15 +379,15 @@ with g.html(lang='en') as home_page:
                     g.button('Cancel', role="button", class_="secondary", data_target="modal-example", onclick="toggleModal(event)")
                     g.button('Confirm', autofocus="autofocus", data_target="modal-example", onclick="toggleModal(event)")
 
-        g.script(src="js/minimal-theme-switcher.js")
-        g.script(src="js/modal.js")
+        g.script(src="/js/minimal-theme-switcher.js")
+        g.script(src="/js/modal.js")
 
 
 # server
 app = web.Application()
 routes = web.RouteTableDef()
-routes.static('/js', 'examples/pico_preview/js')
-routes.static('/css', 'examples/pico_preview/css')
+routes.static('/js', './js')
+routes.static('/css', './css')
 
 
 @routes.get('/')

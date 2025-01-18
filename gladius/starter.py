@@ -1,6 +1,9 @@
 __all__ = [
     'make_mpy_pico',
+    'create_aiohttp_app',
 ]
+
+from typing import Optional, Union
 
 from aiohttp import web
 
@@ -10,6 +13,7 @@ from .aiohttp import make_app
 from .util import make_page
 
 
+# FIXME: remove
 def make_mpy_pico(
     root_dir: str,
     lang: str='en',
@@ -45,3 +49,16 @@ def make_mpy_pico(
         return page.render()
 
     return g, app, routes, page
+
+
+def create_aiohttp_app(
+    root_dir: Optional[str]=None,
+    lang: str='en',
+    title: str='Gladius',
+    description: str='Gladius',
+    favicon: str | tuple | list | dict | Element='/static/img/favicon.png',
+    links: list[str | tuple | list | dict | Element]=[],
+    scripts: list[str | tuple | list | dict | Element]=[],
+    npm_packages: dict[str, Union[str, list, dict]]={},
+) -> tuple[Gladius, Element, web.Application]:
+    pass

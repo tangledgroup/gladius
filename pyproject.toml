@@ -13,6 +13,7 @@ cattrs = "^24.1.2"
 aiohttp = {extras = ["speedups"], version = "^3.11.10"}
 watchdog = {extras = ["watchmedo"], version = "^6.0.0"}
 gunicorn = {extras = ["gunicorn"], version = "^23.0.0"}
+nodejs-wheel = "^22.13.0"
 
 
 [build-system]

@@ -3,8 +3,8 @@ from .element import ElementType, Element, ContainerElement, Text
 
 
 class Gladius(BaseGladius):
-    element_types: dict[str, ElementType]
-    element_scopes: list[ContainerElement]
+    element_types: dict[str, ElementType]   # defined HTML elements
+    element_scopes: list[ContainerElement]  # used for elements using `with` statement
 
 
     def __init__(self):
