@@ -4,13 +4,15 @@ __all__ = [
 ]
 
 from typing import Optional, Union
+from tempfile import TemporaryDirectory
 
 from aiohttp import web
+from nodejs_wheel import npm
 
 from .element import Element
 from .gladius import Gladius
 from .aiohttp import make_app
-from .util import make_page
+from .util import make_page, install_npm_package, compile_npm_package
 
 
 # FIXME: remove
@@ -59,6 +61,20 @@ def create_aiohttp_app(
     favicon: str | tuple | list | dict | Element='/static/img/favicon.png',
     links: list[str | tuple | list | dict | Element]=[],
     scripts: list[str | tuple | list | dict | Element]=[],
-    npm_packages: dict[str, Union[str, list, dict]]={},
+    npm_packages: dict[str, dict]={},
 ) -> tuple[Gladius, Element, web.Application]:
-    pass
+    with TemporaryDirectory() as build_dir:
+        print(f'{build_dir=}')
+        p = npm(['init', '-y'], cwd=build_dir, return_completed_process=True)
+        print(f'create_aiohttp_app {p=}')
+
+        install_npm_package(build_dir, 'esbuild', {'version': '*'})
+
+        for pkg_name, pkg_info in npm_packages.items():
+            install_npm_package(build_dir, pkg_name, pkg_info)
+
+        for pkg_name, pkg_info in npm_packages.items():
+            r = compile_npm_package(build_dir, pkg_name, pkg_info)
+            print(f'{r=}')
+
+    return None, None, None
