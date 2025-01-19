@@ -6,8 +6,9 @@ __all__ = [
 
 import os
 import shutil
-from typing import Union
 from pathlib import Path
+from subprocess import PIPE
+from typing import Any, Optional, Union
 
 from nodejs_wheel import npm, npx
 
@@ -89,7 +90,11 @@ def make_page(
     return el
 
 
-def install_npm_package(build_dir: Union[str, Path], pkg_name: str, pkg_info: str | dict):
+#
+# npm packages
+#
+
+def install_npm_package(static_path: str, build_dir: Union[str, Path], pkg_name: str, pkg_info: Union[str, dict[str, Any], list[str]]):
     if isinstance(pkg_info, str):
         pkg_ver = pkg_info
 
@@ -98,7 +103,14 @@ def install_npm_package(build_dir: Union[str, Path], pkg_name: str, pkg_info: st
         else:
             pkg_name_ver = f'{pkg_name}@{pkg_ver}'
     elif isinstance(pkg_info, dict):
-        pkg_ver = pkg_info['version']
+        pkg_ver = pkg_info.get('version', '*')
+
+        if pkg_ver == '*':
+            pkg_name_ver = pkg_name
+        else:
+            pkg_name_ver = f'{pkg_name}@{pkg_ver}'
+    elif isinstance(pkg_info, list):
+        pkg_ver = '*'
 
         if pkg_ver == '*':
             pkg_name_ver = pkg_name
@@ -107,75 +119,100 @@ def install_npm_package(build_dir: Union[str, Path], pkg_name: str, pkg_info: st
     else:
         raise ValueError(pkg_info)
 
-    p = npm(['install', '--save', pkg_name_ver], cwd=build_dir, return_completed_process=True)
-    print(f'install_npm_package {p=}')
+    p = npm(
+        ['install', '--save', pkg_name_ver],
+        cwd=build_dir,
+        stdout=PIPE,
+        stderr=PIPE,
+        return_completed_process=True,
+    )
+
+    assert p.returncode == 0
+    # print(f'install_npm_package {p=}')
 
 
-def compile_npm_package(build_dir: Union[str, Path], pkg_name: str, pkg_info: dict) -> Union[str, Path]:
-    static_path: str = './static/'
+def copy_npm_package(static_path: str, build_dir: Union[str, Path], pkg_name: str, pkg_info: Union[dict, list], pkg_copy: Union[dict, list]):
+    # print(f'{pkg_copy=}')
+    dest_paths: list[Union[str, Path]] = []
 
-    # create static directory if does not exist
-    if not (os.path.exists(static_path) and os.path.isdir(static_path)):
-        os.makedirs(static_path, exist_ok=True)
+    if isinstance(pkg_copy, list):
+        pkg_copy = {k: os.path.join(pkg_name, k) for k in pkg_copy}
+        # print(f'new {pkg_copy=}')
 
-    if pkg_copy := pkg_info.get('copy'):
-        print(f'{pkg_copy=}')
+    if isinstance(pkg_copy, dict):
+        for k, v in pkg_copy.items():
+            src_path = os.path.join(build_dir, 'node_modules', pkg_name, k)
+            dest_path = os.path.join(static_path, v)
 
-        if isinstance(pkg_copy, dict):
-            for k, v in pkg_copy.items():
-                src_path = os.path.join(build_dir, 'node_modules', pkg_name, k)
-                dest_path = os.path.join(static_path, v)
+            if not (os.path.exists(src_path) and os.path.isfile(src_path)):
+                raise FileNotFoundError(src_path)
 
-                if not (os.path.exists(src_path) and os.path.isfile(src_path)):
-                    raise FileNotFoundError(src_path)
+            if dest_path.endswith('/'):
+                # dir ends with "/"
+                if not (os.path.exists(dest_path) and os.path.isdir(dest_path)):
+                    os.makedirs(dest_path, exist_ok=True)
+            else:
+                # otherwise, it is file path
+                dest_dirpath, dest_filename = os.path.split(dest_path)
 
-                if dest_path.endswith('/'):
-                    # dir ends with "/"
-                    if not (os.path.exists(dest_path) and os.path.isdir(dest_path)):
-                        os.makedirs(dest_path, exist_ok=True)
-                else:
-                    # otherwise, it is file path
-                    dest_dirpath, dest_filename = os.path.split(dest_path)
+                if not (os.path.exists(dest_dirpath) and os.path.isdir(dest_dirpath)):
+                    os.makedirs(dest_dirpath, exist_ok=True)
 
-                    if not (os.path.exists(dest_dirpath) and os.path.isdir(dest_dirpath)):
-                        os.makedirs(dest_dirpath, exist_ok=True)
+            shutil.copy(src_path, dest_path)
 
-                shutil.copy(src_path, dest_path)
-        else:
-            raise ValueError(pkg_copy)
-    elif pkg_bundle := pkg_info.get('bundle'):
-        print(f'{pkg_bundle=}')
+            dest_path = os.path.relpath(dest_path)
+            dest_paths.append(dest_path)
+    else:
+        raise ValueError(pkg_copy)
 
-        if isinstance(pkg_bundle, dict):
-            for k, v in pkg_bundle.items():
-                src_path = os.path.join(build_dir, 'node_modules', pkg_name, k)
-                dest_path = os.path.join(static_path, v)
+    return dest_paths
 
-                if not (os.path.exists(src_path) and os.path.isfile(src_path)):
-                    raise FileNotFoundError(src_path)
 
-                if dest_path.endswith('/'):
-                    # dir ends with "/"
-                    if not (os.path.exists(dest_path) and os.path.isdir(dest_path)):
-                        os.makedirs(dest_path, exist_ok=True)
+def bundle_npm_package(static_path: str, build_dir: Union[str, Path], pkg_name: str, pkg_info: Union[dict[str, Any], list[str]], pkg_bundle: Union[dict, list]):
+    # print(f'{pkg_bundle=}')
+    dest_paths: list[Union[str, Path]] = []
 
-                    _, dest_filename = os.path.split(src_path)
-                    dest_dirpath = dest_path
-                    dest_path = os.path.join(dest_dirpath, dest_filename)
-                else:
-                    # otherwise, it is file path
-                    dest_dirpath, dest_filename = os.path.split(dest_path)
+    if isinstance(pkg_bundle, list):
+        pkg_bundle = {k: os.path.join(pkg_name, k) for k in pkg_bundle}
+        # print(f'new {pkg_bundle=}')
 
-                    if not (os.path.exists(dest_dirpath) and os.path.isdir(dest_dirpath)):
-                        os.makedirs(dest_dirpath, exist_ok=True)
+    if isinstance(pkg_bundle, dict):
+        for k, v in pkg_bundle.items():
+            src_path = os.path.join(build_dir, 'node_modules', pkg_name, k)
+            dest_path = os.path.join(static_path, v)
 
-                dest_path = os.path.abspath(dest_path)
+            if not (os.path.exists(src_path) and os.path.isfile(src_path)):
+                raise FileNotFoundError(src_path)
 
-                global_name = pkg_bundle.get('global-name')
+            if dest_path.endswith('/'):
+                # dir ends with "/"
+                if not (os.path.exists(dest_path) and os.path.isdir(dest_path)):
+                    os.makedirs(dest_path, exist_ok=True)
+
+                _, dest_filename = os.path.split(src_path)
+                dest_dirpath = dest_path
+                dest_path = os.path.join(dest_dirpath, dest_filename)
+            else:
+                # otherwise, it is file path
+                dest_dirpath, dest_filename = os.path.split(dest_path)
+
+                if not (os.path.exists(dest_dirpath) and os.path.isdir(dest_dirpath)):
+                    os.makedirs(dest_dirpath, exist_ok=True)
+
+            dest_path = os.path.abspath(dest_path)
+            _, ext = os.path.splitext(src_path)
+
+            if ext in ('.wasm',):
+                # copy instead of bundle
+                pkg_copy = {src_path: dest_path}
+                copy_npm_package(static_path, build_dir, pkg_name, pkg_info, pkg_copy)
+            else:
+                assert isinstance(pkg_info, dict)
+                global_name: Optional[str] = pkg_info.get('global-name')
                 global_name_cmd = []
 
                 if global_name:
-                    global_name_cmd.append(f'--global-name="{global_name}"')
+                    global_name_cmd.append(f'--global-name={global_name}')
 
                 p = npx(
                     [
@@ -186,23 +223,61 @@ def compile_npm_package(build_dir: Union[str, Path], pkg_name: str, pkg_info: di
                         '--sourcemap',
                         f'--outfile={dest_path}',
                         '--format=iife',
+                        # '--format=esm',
                         '--platform=node',
+                        '--loader:.js=js',
                         '--loader:.ts=ts',
                         '--loader:.woff=file',
                         '--loader:.woff2=file',
                         '--loader:.ttf=file',
                         '--loader:.svg=file',
+                        '--loader:.wasm=file',
                         *global_name_cmd,
                     ],
                     cwd=build_dir,
+                    stdout=PIPE,
+                    stderr=PIPE,
                     return_completed_process=True,
                 )
 
-                print(f'compile_npm_package {p=}')
-        else:
-            raise ValueError(pkg_bundle)
+                # print(f'compile_npm_package {p=}')
 
+                if p.returncode == 0:
+                    dest_path = os.path.relpath(dest_path)
+                    dest_paths.append(dest_path)
+                else:
+                    # copy if bundle failed
+                    pkg_copy = {src_path: dest_path}
+                    paths = copy_npm_package(static_path, build_dir, pkg_name, pkg_info, pkg_copy)
+                    paths = [os.path.relpath(dest_path) for dest_path in paths]
+                    dest_paths.extend(paths)
+
+                # print(f'compile_npm_package {p=}')
     else:
-        raise ValueError('One of "copy" or "bundle" is required')
+        raise ValueError(pkg_bundle)
 
-    return ''
+    return dest_paths
+
+
+def compile_npm_package(static_path: str, build_dir: Union[str, Path], pkg_name: str, pkg_info: Union[dict[str, Any], list[str]]) -> list[Union[str, Path]]:
+    # print(f'{pkg_info=}')
+    dest_paths: list[Union[str, Path]] = []
+
+    # create static directory if does not exist
+    if not (os.path.exists(static_path) and os.path.isdir(static_path)):
+        os.makedirs(static_path, exist_ok=True)
+
+    if isinstance(pkg_info, list):
+        # print(f'new {pkg_info=}')
+        pkg_info = {'bundle': pkg_info}
+
+    if isinstance(pkg_info, dict):
+        if pkg_copy := pkg_info.get('copy'):
+            paths = copy_npm_package(static_path, build_dir, pkg_name, pkg_info, pkg_copy)
+            dest_paths.extend(paths)
+
+        if pkg_bundle := pkg_info.get('bundle'):
+            paths = bundle_npm_package(static_path, build_dir, pkg_name, pkg_info, pkg_bundle)
+            dest_paths.extend(paths)
+
+    return dest_paths

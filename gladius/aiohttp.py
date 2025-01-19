@@ -2,8 +2,7 @@ __all__ = [
     'element_middleware',
     'html_middleware',
     'json_middleware',
-    'middlewares',
-    'make_app',
+    'aiohttp_middlewares',
 ]
 
 import os
@@ -48,13 +47,14 @@ async def json_middleware(request, handler):
     return resp
 
 
-middlewares = [
+aiohttp_middlewares = [
     element_middleware,
     html_middleware,
     json_middleware,
 ]
 
 
+"""
 def make_app(
     root_dir: Optional[str]=None,
     static_dirs: list[str]=['static'], middlewares=middlewares,
@@ -76,3 +76,23 @@ def make_app(
         routes.static(f'/{n}', os.path.join(root_dir, n))
 
     return g, app, routes
+"""
+
+"""
+def make_app(
+    root_dir: Optional[str]=None,
+    static_dirs: list[str]=['static'],
+    middlewares=middlewares,
+) -> tuple[Gladius, web.Application]:
+    g = Gladius()
+    app = web.Application(middlewares=middlewares)
+
+    # static
+    if root_dir is None:
+        root_dir = os.path.split(__file__)[0]
+
+    for n in static_dirs:
+        app.router.static(f'/{n}', os.path.join(root_dir, n))
+
+    return g, app
+"""
