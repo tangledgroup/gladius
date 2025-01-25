@@ -7,67 +7,30 @@ import shutil
 from copy import deepcopy
 from subprocess import PIPE
 from typing import Any, Optional, Union
-from tempfile import TemporaryDirectory
+# from tempfile import TemporaryDirectory
 
-from tqdm import tqdm
+# from tqdm import tqdm
 from aiohttp import web
-from nodejs_wheel import npm
+# from nodejs_wheel import npm
 
 from . import gladius
 from .element import Element
 from .gladius import Gladius
 from .aiohttp import aiohttp_middlewares
-from .util import make_page, install_npm_package, compile_npm_package
+# from .util import make_page, install_npm_package, compile_npm_package, install_compile_npm_packages
+from .util import make_page, install_compile_npm_packages
 
 
 """
-# FIXME: remove
-def make_mpy_pico(
-    root_dir: str,
-    lang: str='en',
-    title: str='Gladius',
-    description: str='Gladius',
-    favicon: str | tuple | list | dict | Element='/static/img/favicon.png',
-    links: list[str | tuple | list | dict | Element]=[],
-    scripts: list[str | tuple | list | dict | Element]=[],
-) -> tuple[Gladius, web.Application, web.RouteTableDef, Element]:
-    g, app, routes = make_app(root_dir)
-
-    page = make_page(
-        g,
-        title=title,
-        description=description,
-        favicon=favicon,
-        links=[
-            '/static/pico/pico.min.css',
-            '/static/nprogress/nprogress.css',
-            '/static/pyscript/core.css',
-            *links,
-        ],
-        scripts=[
-            dict(src='/static/nprogress/nprogress.js', defer=None),
-            dict(src='/static/pyscript/core.js', type='module', defer=None),
-            dict(type='mpy', src='/static/app.py', config='/static/pyscript.toml'),
-            *scripts,
-        ],
-    )
-
-    @routes.get('/{tail:.*}') # type: ignore
-    async def index(request):
-        return page.render()
-
-    return g, app, routes, page
-"""
-
 def create_aiohttp_app(
     root_dir: Optional[str]=None,
     lang: str='en',
     title: str='Gladius',
     description: str='Gladius',
     static_path: str='./static/',
-    favicon: str | tuple | list | dict | Element='img/favicon.png',
-    links: list[str | tuple | list | dict | Element]=[],
-    scripts: list[str | tuple | list | dict | Element]=[],
+    favicon: str='img/favicon.png',
+    links: list[str | dict | Element]=[],
+    scripts: list[str | dict | Element]=[],
     npm_packages: dict[str, Union[dict[str, Any], list[str]]]={},
 ) -> tuple[Gladius, Element, web.Application]:
     g = Gladius()
@@ -113,15 +76,19 @@ def create_aiohttp_app(
         if ext == '.css':
             page_links.append('/' + path)
         elif ext == '.js':
-            page_scripts.append('/' + path)
+            src = f'/{path}'
+            page_script = {'type': 'module', 'src': src, 'defer': None}
+            page_scripts.append(page_script)
 
     print(f'{dest_paths=}')
+    favicon_path = os.path.join('/', 'static', favicon)
+    print(f'{favicon_path=}')
 
     page = make_page(
         g,
         title=title,
         description=description,
-        favicon=os.path.join('/', 'static', favicon), # final favicon path
+        favicon=favicon_path,
         links=page_links,
         scripts=page_scripts,
     )
@@ -146,6 +113,66 @@ def create_aiohttp_app(
             'favicon.png',
         )
         print(f'{favicon_src_path=}')
+
+        favicon_dest_dirpath = os.path.split(favicon_dest_path)[0]
+        os.makedirs(favicon_dest_dirpath, exist_ok=True)
+        shutil.copy(favicon_src_path, favicon_dest_path)
+
+    return g, page, app
+"""
+def create_aiohttp_app(
+    root_dir: Optional[str]=None,
+    lang: str='en',
+    title: str='Gladius',
+    description: str='Gladius',
+    static_path: str='./static/',
+    favicon: str='img/favicon.png',
+    links: list[str | dict | Element]=[],
+    scripts: list[str | dict | Element]=[],
+    npm_packages: dict[str, Union[dict[str, Any], list[str]]]={},
+) -> tuple[Gladius, Element, web.Application]:
+    g = Gladius()
+    app = web.Application(middlewares=aiohttp_middlewares)
+
+    # install and compile npm packages
+    page_links = deepcopy(links)
+    page_scripts = deepcopy(scripts)
+    npm_links, npm_scripts = install_compile_npm_packages(static_path, npm_packages)
+    page_links.extend(npm_links)
+    page_scripts.extend(npm_scripts)
+
+    favicon_path = os.path.join('/', 'static', favicon)
+    # print(f'{favicon_path=}')
+
+    page = make_page(
+        g,
+        title=title,
+        description=description,
+        favicon=favicon_path,
+        links=page_links,
+        scripts=page_scripts,
+    )
+
+    async def page_handler(request):
+        return page.render()
+
+    app.router.add_routes([
+        web.get('/{tail:.*}', page_handler),
+    ])
+
+    app.router.add_static('/static', static_path)
+
+    # favicon
+    favicon_dest_path = os.path.join(static_path, favicon)
+    # print(f'{favicon_dest_path=}')
+
+    if not os.path.exists(favicon_dest_path):
+        favicon_src_path = os.path.join(
+            os.path.split(gladius.__file__)[0],
+            'static',
+            'favicon.png',
+        )
+        # print(f'{favicon_src_path=}')
 
         favicon_dest_dirpath = os.path.split(favicon_dest_path)[0]
         os.makedirs(favicon_dest_dirpath, exist_ok=True)

@@ -12,9 +12,19 @@ npm_packages = {
 
 g, page, app = create_aiohttp_app(npm_packages=npm_packages)
 
+# print(page['head'])
+
 with page:
     with g.body(x_data=None):
-        pass
+        with g.main(class_='container'):
+              g.h1('Hello world!')
+
+        g.script('''
+from pyscript import document
+
+document.body.append("Hello from PyScript")
+''', type='mpy')
+
 
 if __name__ == '__main__':
     web.run_app(app, host='0.0.0.0', port=5000)

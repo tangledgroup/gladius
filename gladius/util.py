@@ -5,11 +5,15 @@ __all__ = [
 ]
 
 import os
+import json
 import shutil
 from pathlib import Path
+from copy import deepcopy
 from subprocess import PIPE
 from typing import Any, Optional, Union
+from tempfile import TemporaryDirectory
 
+from tqdm import tqdm
 from nodejs_wheel import npm, npx
 
 from .element import Element
@@ -21,9 +25,9 @@ def make_page(
     lang: str='en',
     title: str='Gladius',
     description: str='Gladius',
-    favicon: str | tuple | list | dict | Element='/static/img/favicon.png',
-    links: list[str | tuple | list | dict | Element]=[],
-    scripts: list[str | tuple | list | dict | Element]=[],
+    favicon: str | dict='/static/img/favicon.png',
+    links: list[str | dict]=[],
+    scripts: list[str | dict]=[],
 ) -> Element:
     el: Element
 
@@ -37,55 +41,46 @@ def make_page(
             # favicon
             if isinstance(favicon, str):
                 g.link(rel='icon', href=favicon, type='image/png')
-            elif isinstance(favicon, (tuple, list)):
-                assert 1 <= len(favicon) <= 2
-
-                if len(favicon) == 1:
-                    href = favicon[0]
-                    g.link(rel='icon', href=href, type='image/png')
-                elif len(favicon) == 2:
-                    href, type_ = favicon
-                    g.link(rel='icon', href=href, type=type_)
             elif isinstance(favicon, dict):
                 g.link(**favicon)
-            elif isinstance(favicon, Element):
-                head.add(favicon)
+            else:
+                raise ValueError(favicon)
 
             # links
             for n in links:
                 if isinstance(n, str):
                     g.link(rel='stylesheet', href=n)
-                elif isinstance(n, (tuple, list)):
-                    assert 1 <= len(n) <= 2
-
-                    if len(n) == 1:
-                        href = n[0]
-                        g.link(rel='stylesheet', href=href)
-                    elif len(n) == 2:
-                        rel, href = n
-                        g.link(rel=rel, href=href)
+                # elif isinstance(n, (tuple, list)):
+                #     assert 1 <= len(n) <= 2
+                #
+                #     if len(n) == 1:
+                #         href = n[0]
+                #         g.link(rel='stylesheet', href=href)
+                #     elif len(n) == 2:
+                #         rel, href = n
+                #         g.link(rel=rel, href=href)
                 elif isinstance(n, dict):
                     g.link(**n)
-                elif isinstance(n, Element):
-                    head.add(n)
+                else:
+                    raise ValueError(n)
 
             # scripts
             for n in scripts:
                 if isinstance(n, str):
                     g.script(src=n)
-                elif isinstance(n, (tuple, list)):
-                    assert 1 <= len(n) <= 2
-
-                    if len(n) == 1:
-                        src = n[0]
-                        g.script(src=src)
-                    elif len(n) == 2:
-                        src, defer = n
-                        g.script(src=src, defer=defer)
+                # elif isinstance(n, (tuple, list)):
+                #     assert 1 <= len(n) <= 2
+                #
+                #     if len(n) == 1:
+                #         src = n[0]
+                #         g.script(src=src)
+                #     elif len(n) == 2:
+                #         src, defer = n
+                #         g.script(src=src, defer=defer)
                 elif isinstance(n, dict):
                     g.script(**n)
-                elif isinstance(n, Element):
-                    head.add(n)
+                else:
+                    raise ValueError(n)
 
     return el
 
@@ -208,22 +203,22 @@ def bundle_npm_package(static_path: str, build_dir: Union[str, Path], pkg_name: 
                 copy_npm_package(static_path, build_dir, pkg_name, pkg_info, pkg_copy)
             else:
                 assert isinstance(pkg_info, dict)
-                global_name: Optional[str] = pkg_info.get('global-name')
-                global_name_cmd = []
-
-                if global_name:
-                    global_name_cmd.append(f'--global-name={global_name}')
+                # global_name: Optional[str] = pkg_info.get('global-name')
+                # global_name_cmd = []
+                #
+                # if global_name:
+                #     global_name_cmd.append(f'--global-name={global_name}')
 
                 p = npx(
                     [
                         'esbuild',
                         src_path,
                         '--bundle',
-                        '--minify',
+                        # '--minify',
                         '--sourcemap',
                         f'--outfile={dest_path}',
-                        '--format=iife',
-                        # '--format=esm',
+                        # '--format=iife',
+                        '--format=esm',
                         '--platform=node',
                         '--loader:.js=js',
                         '--loader:.ts=ts',
@@ -232,7 +227,7 @@ def bundle_npm_package(static_path: str, build_dir: Union[str, Path], pkg_name: 
                         '--loader:.ttf=file',
                         '--loader:.svg=file',
                         '--loader:.wasm=file',
-                        *global_name_cmd,
+                        # *global_name_cmd,
                     ],
                     cwd=build_dir,
                     stdout=PIPE,
@@ -281,3 +276,92 @@ def compile_npm_package(static_path: str, build_dir: Union[str, Path], pkg_name:
             dest_paths.extend(paths)
 
     return dest_paths
+
+
+def install_compile_npm_packages(
+    static_path: str,
+    npm_packages: dict[str, Union[dict[str, Any], list[str]]]={},
+) -> tuple[list[str | dict], list[str | dict]]:
+    page_links: list[str | dict]
+    page_scripts: list[str | dict]
+
+    # try to load npm cache
+    cache_dir = '.cache'
+    cache_file = 'npm_packages.json'
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_path = os.path.join(cache_dir, cache_file)
+
+    if os.path.exists(cache_path):
+        with open(cache_path, 'r') as f:
+            cached_npm_packages = json.load(f)
+
+        if cached_npm_packages['npm_packages'] == npm_packages:
+            page_links = cached_npm_packages['page_links']
+            page_scripts = cached_npm_packages['page_scripts']
+            print('loaded npm cache', cache_path)
+            return page_links, page_scripts
+
+    page_links = []
+    page_scripts = []
+    dest_paths: list[Union[str, Path]] = []
+
+    with TemporaryDirectory() as build_dir:
+        # print(f'{build_dir=}')
+
+        p = npm(
+            ['init', '-y'],
+            cwd=build_dir,
+            stdout=PIPE,
+            stderr=PIPE,
+            return_completed_process=True,
+        )
+
+        assert p.returncode == 0
+        # print(f'create_aiohttp_app {p=}')
+
+        total = 1 + len(npm_packages) + len(npm_packages)
+        t = tqdm(total=total)
+        t.set_description('Install esbuild')
+        install_npm_package(static_path, build_dir, 'esbuild', {'version': '*'})
+        t.update(1)
+
+        for pkg_name, pkg_info in npm_packages.items():
+            t.set_description(f'Install {pkg_name}')
+            install_npm_package(static_path, build_dir, pkg_name, pkg_info)
+            t.update(1)
+
+        for pkg_name, pkg_info in npm_packages.items():
+            t.set_description(f'Compile {pkg_name}')
+            paths = compile_npm_package(static_path, build_dir, pkg_name, pkg_info)
+            dest_paths.extend(paths)
+            t.update(1)
+
+    print(f'{dest_paths=}')
+
+    for path in dest_paths:
+        _, ext = os.path.splitext(path)
+
+        if ext == '.css':
+            href = f'/{path}'
+            page_link = {'rel': 'stylesheet', 'href': href}
+            page_links.append(page_link)
+        elif ext == '.js':
+            src = f'/{path}'
+            page_script = {'type': 'module', 'src': src, 'defer': None}
+            page_scripts.append(page_script)
+
+    # save npm cache
+    if os.path.exists(cache_path):
+        os.remove(cache_path)
+
+    with open(cache_path, 'w') as f:
+        cached_npm_packages = {
+            'npm_packages': npm_packages,
+            'page_links': page_links,
+            'page_scripts': page_scripts,
+        }
+
+        json.dump(cached_npm_packages, f, indent=2)
+        print('saved npm cache', cache_path)
+
+    return page_links, page_scripts
