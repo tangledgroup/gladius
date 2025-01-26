@@ -388,6 +388,7 @@ app = web.Application()
 routes = web.RouteTableDef()
 routes.static('/js', './js')
 routes.static('/css', './css')
+routes.static('/img', './img')
 
 
 @routes.get('/')
@@ -398,4 +399,6 @@ async def variable_handler(request):
 
 
 app.add_routes(routes)
-web.run_app(app, host='0.0.0.0', port=5000)
+
+if __name__ == '__main__':
+    web.run_app(app, host='0.0.0.0', port=5000)
