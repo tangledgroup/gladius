@@ -12,7 +12,7 @@
 [![Supported Versions](https://img.shields.io/pypi/pyversions/gladius)](https://pypi.org/project/gladius)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-<img src="https://github.com/mtasic85/gladius/raw/main/misc/logo-1.png" alt="" style="display: block; margin: auto;" />
+<img src="https://github.com/mtasic85/gladius/raw/main/misc/logo/logo-1.png" alt="" style="display: block; margin: auto;" />
 
 **Gladius** aka "gladius" is a library facilitating web application development exclusively in pure **Python**, eliminating the need for HTML, CSS, or JavaScript/TypeScript.
 
