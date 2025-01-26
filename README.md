@@ -30,6 +30,8 @@ pip install gladius[all]
 
 ## Hello World
 
+Create `app.py` file with content:
+
 ```python
 from aiohttp import web
 from gladius.starter import create_aiohttp_app
@@ -92,7 +94,7 @@ if __name__ == '__main__':
     web.run_app(app, host='0.0.0.0', port=5000)
 ```
 
-Run python app with simple server in background.
+Run python app with simple server in background:
 
 ```bash
 python -B app.py
