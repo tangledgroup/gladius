@@ -46,7 +46,8 @@ class Element(metaclass=ElementType):
     void_element: bool
 
 
-    def __init__(self, /, inline: bool=False, attrs: Optional[dict]=None, **kwargs):
+    # def __init__(self, /, inline: bool=False, attrs: Optional[dict]=None, **kwargs):
+    def __init__(self, inline: bool=False, attrs: Optional[dict]=None, **kwargs):
         self.attrs = dict(kwargs)
 
         if attrs:
@@ -166,7 +167,8 @@ class VoidElement(Element):
     void_element = True
 
 
-    def __init__(self, /, **kwargs):
+    # def __init__(self, /, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 

@@ -5,6 +5,7 @@ __all__ = [
 import os
 import json
 import shutil
+import urllib.request
 from copy import deepcopy
 from subprocess import PIPE
 from typing import Any, Optional, Union
@@ -106,10 +107,46 @@ def create_aiohttp_app(
     # pyscript
     if use_pyscript:
         if use_micropython:
-            print(f'{npm_paths=}')
+            # print(f'{npm_paths=}')
             mpy_config_content: list[str] | str = []
+            mpy_config_files: dict[str, str] | str = {}
             mpy_config_js_modules_main_content: dict[str, str] | str = {}
 
+            # download micropython-stubs - typing
+            url = 'https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/typing.py'
+            dir = 'micropython'
+            filename = 'typing.py'
+            dirpath = os.path.join(static_path, dir)
+            os.makedirs(dirpath, exist_ok=True)
+            path = os.path.join(dirpath, filename)
+
+            if not os.path.exists(path):
+                urllib.request.urlretrieve(url, path)
+
+            # mpy_config_files[filename] = path
+            mpy_config_files[path] = filename
+
+            # download micropython-stubs - typing_extensions
+            url = 'https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/typing_extensions.py'
+            dir = 'micropython'
+            filename = 'typing_extensions.py'
+            dirpath = os.path.join(static_path, dir)
+            os.makedirs(dirpath, exist_ok=True)
+            path = os.path.join(dirpath, filename)
+
+            if not os.path.exists(path):
+                urllib.request.urlretrieve(url, path)
+
+            # mpy_config_files[filename] = path
+            mpy_config_files[path] = filename
+
+            mpy_config_files = '\n'.join(
+                f'{json.dumps("/" + k)} = {json.dumps(v)}'
+                for k, v in mpy_config_files.items()
+            )
+            # print(mpy_config_files)
+
+            # include pyscript and micropython
             for k, v in npm_paths.items():
                 if k in ('@pyscript/core', '@micropython/micropython-webassembly-pyscript'):
                     continue
@@ -130,9 +167,14 @@ def create_aiohttp_app(
                 for k, v in mpy_config_js_modules_main_content.items()
             )
 
-            print(f'{mpy_config_js_modules_main_content=}')
+            # print(f'{mpy_config_js_modules_main_content=}')
 
             mpy_config_content = '\n'.join([
+                '\n',
+
+                '[files]',
+                mpy_config_files,
+
                 '[js_modules.main]',
                 mpy_config_js_modules_main_content,
             ])

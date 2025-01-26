@@ -322,7 +322,7 @@ def install_compile_npm_packages(
             dest_paths.extend(paths)
             t.update(1)
 
-    print(f'{dest_paths=}')
+    # print(f'{dest_paths=}')
 
     for path in dest_paths:
         _, ext = os.path.splitext(path)
