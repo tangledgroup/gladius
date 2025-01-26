@@ -2,6 +2,8 @@ __all__ = [
     'make_page',
     'install_npm_package',
     'compile_npm_package',
+    'install_compile_npm_packages',
+    'get_function_body',
 ]
 
 import os

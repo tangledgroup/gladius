@@ -6,6 +6,7 @@ from typing import Any, Optional, Callable
 
 from .types import BaseGladius
 from .defs import VOID_TAGS, CONTAINER_TAGS
+from .script import get_function_body
 
 
 class ElementType(type):
@@ -217,12 +218,20 @@ class ContainerElement(Element):
     children: list[Element | Callable]
 
 
-    def __init__(self, text_content: str | None=None, children: Optional[list[Element | Callable]]=None, **kwargs):
+    def __init__(self, text_content: str | Callable | None=None, children: Optional[list[Element | Callable]]=None, **kwargs):
         super().__init__(**kwargs)
         self.children = children if children else []
 
         if text_content:
-            text_node: Element = self.ctx.text(text_content, inline=True) # type: ignore
+            if isinstance(text_content, str):
+                text_node: Element = self.ctx.text(text_content, inline=True) # type: ignore
+            elif self.tag == 'script' and callable(text_content):
+                source_content: str = '\n' + get_function_body(text_content)
+                text_node: Element = self.ctx.text(source_content, inline=True) # type: ignore
+                self.attrs['type'] = 'mpy'
+            else:
+                raise ValueError(text_content)
+
             self.children.append(text_node)
 
 
