@@ -11,7 +11,7 @@ npm_packages = {
 g, page, app = create_aiohttp_app(npm_packages=npm_packages) # type: ignore
 
 # client-side code, never executed on server-side
-def load_cb():
+def on_load():
     # this code is run on client-side only
     from pyscript import document, window, when # type: ignore
     from pyscript.web import page, button # type: ignore
@@ -51,7 +51,7 @@ with page:
               g.h1('Hello world!')
 
         # attach client-side python script
-        g.script(load_cb)
+        g.script(on_load)
 
 
 # run server

@@ -11,7 +11,7 @@ npm_packages = {
 g, page, app = create_aiohttp_app(npm_packages=npm_packages)
 
 # client-side click handler
-def load_cb():
+def on_load():
     from pyscript import when
     from pyscript.web import page
     from pyscript.js_modules.nprogress import default as NProgress
@@ -34,7 +34,7 @@ with page:
             g.h1('Gladius Demo')
             g.button('Click me!', id='hello-button')    # create button on server
 
-        g.script(load_cb)                               # attach client logic
+        g.script(on_load)                               # attach client logic
 
 # start application
 if __name__ == '__main__':

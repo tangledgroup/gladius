@@ -12,7 +12,7 @@ npm_packages = {
 g, page, app = create_aiohttp_app(npm_packages=npm_packages) # type: ignore
 
 
-def load_cb():
+def on_load():
     from pyscript import document, window # type: ignore
     from pyscript.js_modules.alpinejs import Alpine # type: ignore
     from pyscript.js_modules.pinecone_router import default as PineconeRouter # type: ignore
@@ -37,7 +37,7 @@ with page:
         with g.main(class_='container'):
               g.h1('Hello world!')
 
-        g.script(load_cb)
+        g.script(on_load)
 
 
 if __name__ == '__main__':
