@@ -52,7 +52,7 @@ def load_cb():
     from pyscript.js_modules.nprogress import default as NProgress
 
     btn = page['#hello-button'][0]  # get server-created button
-    clicked = 0  # track clicks
+    clicked = 0                     # track clicks
 
     @when('click', btn)
     def on_click(event):
@@ -67,8 +67,9 @@ with page:
     with g.body(x_data=None):
         with g.main(class_='container'):
             g.h1('Gladius Demo')
-            g.button('Click me!', id='hello-button')  # create button on server
-        g.script(load_cb)  # attach client logic
+            g.button('Click me!', id='hello-button')    # create button on server
+
+        g.script(load_cb)                               # attach client logic
 
 # start application
 if __name__ == '__main__':
