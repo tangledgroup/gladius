@@ -7,7 +7,6 @@ __all__ = [
 import os
 import json
 import shutil
-from pathlib import Path
 from copy import deepcopy
 from subprocess import PIPE
 from typing import Any, Optional, Union
@@ -50,15 +49,6 @@ def make_page(
             for n in links:
                 if isinstance(n, str):
                     g.link(rel='stylesheet', href=n)
-                # elif isinstance(n, (tuple, list)):
-                #     assert 1 <= len(n) <= 2
-                #
-                #     if len(n) == 1:
-                #         href = n[0]
-                #         g.link(rel='stylesheet', href=href)
-                #     elif len(n) == 2:
-                #         rel, href = n
-                #         g.link(rel=rel, href=href)
                 elif isinstance(n, dict):
                     g.link(**n)
                 else:
@@ -68,15 +58,6 @@ def make_page(
             for n in scripts:
                 if isinstance(n, str):
                     g.script(src=n)
-                # elif isinstance(n, (tuple, list)):
-                #     assert 1 <= len(n) <= 2
-                #
-                #     if len(n) == 1:
-                #         src = n[0]
-                #         g.script(src=src)
-                #     elif len(n) == 2:
-                #         src, defer = n
-                #         g.script(src=src, defer=defer)
                 elif isinstance(n, dict):
                     g.script(**n)
                 else:
@@ -88,8 +69,7 @@ def make_page(
 #
 # npm packages
 #
-
-def install_npm_package(static_path: str, build_dir: Union[str, Path], pkg_name: str, pkg_info: Union[str, dict[str, Any], list[str]]):
+def install_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info: Union[str, dict[str, Any], list[str]]):
     if isinstance(pkg_info, str):
         pkg_ver = pkg_info
 
@@ -126,9 +106,9 @@ def install_npm_package(static_path: str, build_dir: Union[str, Path], pkg_name:
     # print(f'install_npm_package {p=}')
 
 
-def copy_npm_package(static_path: str, build_dir: Union[str, Path], pkg_name: str, pkg_info: Union[dict, list], pkg_copy: Union[dict, list]):
+def copy_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info: Union[dict, list], pkg_copy: Union[dict, list]):
     # print(f'{pkg_copy=}')
-    dest_paths: list[Union[str, Path]] = []
+    dest_paths: list[str] = []
 
     if isinstance(pkg_copy, list):
         pkg_copy = {k: os.path.join(pkg_name, k) for k in pkg_copy}
@@ -163,9 +143,9 @@ def copy_npm_package(static_path: str, build_dir: Union[str, Path], pkg_name: st
     return dest_paths
 
 
-def bundle_npm_package(static_path: str, build_dir: Union[str, Path], pkg_name: str, pkg_info: Union[dict[str, Any], list[str]], pkg_bundle: Union[dict, list]):
+def bundle_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info: Union[dict[str, Any], list[str]], pkg_bundle: Union[dict, list]):
     # print(f'{pkg_bundle=}')
-    dest_paths: list[Union[str, Path]] = []
+    dest_paths: list[str] = []
 
     if isinstance(pkg_bundle, list):
         pkg_bundle = {k: os.path.join(pkg_name, k) for k in pkg_bundle}
@@ -254,9 +234,9 @@ def bundle_npm_package(static_path: str, build_dir: Union[str, Path], pkg_name: 
     return dest_paths
 
 
-def compile_npm_package(static_path: str, build_dir: Union[str, Path], pkg_name: str, pkg_info: Union[dict[str, Any], list[str]]) -> list[Union[str, Path]]:
+def compile_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info: Union[dict[str, Any], list[str]]) -> list[str]:
     # print(f'{pkg_info=}')
-    dest_paths: list[Union[str, Path]] = []
+    dest_paths: list[str] = []
 
     # create static directory if does not exist
     if not (os.path.exists(static_path) and os.path.isdir(static_path)):
@@ -281,7 +261,8 @@ def compile_npm_package(static_path: str, build_dir: Union[str, Path], pkg_name:
 def install_compile_npm_packages(
     static_path: str,
     npm_packages: dict[str, Union[dict[str, Any], list[str]]]={},
-) -> tuple[list[str | dict], list[str | dict]]:
+) -> tuple[dict[str, list[str]], list[str | dict], list[str | dict]]:
+    page_paths: dict[str, list[str]]
     page_links: list[str | dict]
     page_scripts: list[str | dict]
 
@@ -296,14 +277,16 @@ def install_compile_npm_packages(
             cached_npm_packages = json.load(f)
 
         if cached_npm_packages['npm_packages'] == npm_packages:
+            page_paths = cached_npm_packages['page_paths']
             page_links = cached_npm_packages['page_links']
             page_scripts = cached_npm_packages['page_scripts']
             print('loaded npm cache', cache_path)
-            return page_links, page_scripts
+            return page_paths, page_links, page_scripts
 
+    page_paths = {}
     page_links = []
     page_scripts = []
-    dest_paths: list[Union[str, Path]] = []
+    dest_paths: list[str] = []
 
     with TemporaryDirectory() as build_dir:
         # print(f'{build_dir=}')
@@ -333,6 +316,7 @@ def install_compile_npm_packages(
         for pkg_name, pkg_info in npm_packages.items():
             t.set_description(f'Compile {pkg_name}')
             paths = compile_npm_package(static_path, build_dir, pkg_name, pkg_info)
+            page_paths[pkg_name] = paths
             dest_paths.extend(paths)
             t.update(1)
 
@@ -357,6 +341,7 @@ def install_compile_npm_packages(
     with open(cache_path, 'w') as f:
         cached_npm_packages = {
             'npm_packages': npm_packages,
+            'page_paths': page_paths,
             'page_links': page_links,
             'page_scripts': page_scripts,
         }
@@ -364,4 +349,4 @@ def install_compile_npm_packages(
         json.dump(cached_npm_packages, f, indent=2)
         print('saved npm cache', cache_path)
 
-    return page_links, page_scripts
+    return page_paths, page_links, page_scripts

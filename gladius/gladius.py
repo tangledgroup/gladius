@@ -20,6 +20,7 @@ class Gladius(BaseGladius):
 
 
     def __getattr__(self, tag: str) -> ElementType:
+        # print(f'{self=} {tag=}')
         element_type: ElementType
 
         if tag in self.element_types:

@@ -15,6 +15,7 @@ class ElementType(type):
 
 
     def __getattr__(cls, tag: str) -> 'ElementType':
+        # s(f'{cls=} {tag=}')
         assert tag in VOID_TAGS or tag in CONTAINER_TAGS or '_' in tag, f'unsupported tag {tag!r}'
 
         # web component / pyscript
@@ -27,6 +28,7 @@ class ElementType(type):
             {},
         )
 
+        # print(f'{et=}')
         return et
 
 
@@ -66,6 +68,10 @@ class Element(metaclass=ElementType):
 
     def __len__(self) -> int:
         return 0
+
+
+    def __getitem__(self, index_or_selector: int | str) -> 'Element':
+        raise NotImplementedError('this is element does not support __getitem__')
 
 
     def __enter__(self):
@@ -225,8 +231,6 @@ class ContainerElement(Element):
         text.append(' ' * indent)
         text.append(f'<{self.__class__.__name__}')
 
-        # for k, v in self.attrs.items():
-        #     text.append(f' {self.render_attr_key(k)}={self.render_attr_value(v)}')
         if self.attrs:
             text.append(' ')
             text.append(self.render_attrs())
@@ -263,8 +267,24 @@ class ContainerElement(Element):
         return len(self.children)
 
 
-    def __getitem__(self, index: int) -> Element:
-        return self.children[index] # type: ignore
+    def __getitem__(self, index_or_selector: int | str) -> Element:
+        child: Element
+
+        if isinstance(index_or_selector, int):
+            index: int = index_or_selector
+            child: Element = self.children[index] # type: ignore
+            return child
+        elif isinstance(index_or_selector, str):
+            selector: str = index_or_selector
+
+            for child in self.children: # type: ignore
+                if child.tag == selector:
+                    return child
+            else:
+                raise ValueError(selector)
+        else:
+            raise ValueError(index_or_selector)
+
 
 
     def __enter__(self):
@@ -278,6 +298,7 @@ class ContainerElement(Element):
             raise exc_value.with_traceback(traceback)
 
         _: Element = self.ctx.element_scopes.pop()
+        # print(f'{_=}')
 
 
     def add(self, *args) -> 'Element':
@@ -307,8 +328,6 @@ class ContainerElement(Element):
         text.append(' ' * indent)
         text.append(f'<{self.__class__.__name__}')
 
-        # for k, v in self.attrs.items():
-        #     text.append(f' {self.render_attr_key(k)}={self.render_attr_value(v)}')
         if self.attrs:
             text.append(' ')
             text.append(self.render_attrs())
