@@ -1,17 +1,15 @@
-from pyscript import when
-from pyscript.web import page
-from pyscript.js_modules.nprogress import default as NProgress
+from pyscript import document, window # type: ignore
+from pyscript.js_modules.alpinejs import Alpine # type: ignore
+from pyscript.js_modules.pinecone_router import default as PineconeRouter # type: ignore
 
-from client_utils import f0
 
-btn = page['#hello-button'][0]  # get server-created button
-clicked = 0                     # track clicks
+window.Alpine = Alpine
 
-@when('click', btn)
-def on_click(event):
-    global clicked
-    NProgress.start()
-    clicked += 1
-    print(f0(clicked, clicked))
-    btn.innerText = f'Clicked {clicked} time{"s" if clicked !=1 else ""}!'
-    NProgress.done()
+
+def alpine_init(event):
+    print('alpine:init', event)
+
+
+document.addEventListener('alpine:init', alpine_init)
+Alpine.plugin(PineconeRouter)
+Alpine.start()

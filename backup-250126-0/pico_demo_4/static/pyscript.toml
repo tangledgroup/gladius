@@ -1,9 +1,0 @@
-interpreter = "/static/micropython/micropython.mjs"
-# experimental_create_proxy = "auto"
-
-[files]
-"/static/stores/messages.py" = "stores/messages.py"
-
-[js_modules.main]
-"/static/pinecone-router/router.esm.js" = "pinecone_router"
-"/static/alpinejs/module.esm.js" = "alpinejs"

@@ -4,6 +4,8 @@ from gladius.starter import create_aiohttp_app
 # required npm packages
 npm_packages = {
     '@picocss/pico': ['css/pico.css'],
+    'alpinejs': ['dist/module.esm.js'],
+    'pinecone-router': ['dist/router.esm.js'],
     'nprogress': ['nprogress.js', 'nprogress.css'],
 }
 
