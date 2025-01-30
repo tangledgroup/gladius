@@ -30,7 +30,7 @@ def create_aiohttp_app(
     lang: str='en',
     title: str='Gladius',
     description: str='Gladius',
-    static_path: str='./static/',
+    static_path: str='static',
     favicon: str | dict='img/favicon.png',
     links: list[str | dict]=[],
     scripts: list[str | dict]=[],
@@ -59,7 +59,10 @@ def create_aiohttp_app(
                 'micropython.wasm',
             ]
 
-    npm_paths, npm_links, npm_scripts = install_compile_npm_packages(static_path, npm_packages)
+    root_npm_dir: str = os.path.join(static_path, '__npm__')
+    print(f'{root_npm_dir=}')
+
+    npm_paths, npm_links, npm_scripts = install_compile_npm_packages(root_npm_dir, npm_packages)
     page_links.extend(npm_links)
     page_scripts.extend(npm_scripts)
 
@@ -99,6 +102,7 @@ def create_aiohttp_app(
 
     # print(f'{favicon_dest_path=}')
 
+    # copy favicon if doesn't exist
     if not os.path.exists(favicon_dest_path):
         favicon_src_path = os.path.join(
             os.path.split(gladius.__file__)[0],
@@ -119,11 +123,13 @@ def create_aiohttp_app(
             mpy_config_files: dict[str, str] | str = {}
             mpy_config_js_modules_main_content: dict[str, str] | str = {}
 
-            # download micropython-stubs
+            # download micropython-stubs into "__mpy__" directory
+            root_mpy_dir: str = '__mpy__'
+            print(f'{root_mpy_dir=}')
+
             for filename in ('typing.py', 'typing_extensions.py'):
                 url = f'https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/{filename}'
-                dir = 'micropython'
-                dirpath = os.path.join(static_path, dir)
+                dirpath = os.path.join(static_path, root_mpy_dir)
                 os.makedirs(dirpath, exist_ok=True)
                 path = os.path.join(dirpath, filename)
 
@@ -137,12 +143,21 @@ def create_aiohttp_app(
                 module_map: dict[str, str] = generate_module_map(ready)
                 print(f'{module_map=}')
 
+                root_app_dir: str = '__app__'
+                print(f'{root_app_dir=}')
+
+                # remove "__app__" directory, and copy with new content
+                shutil.rmtree(root_app_dir, ignore_errors=True)
+
                 for k, v in module_map.items():
                     if k.startswith('pyscript'):
                         continue
 
-                    path = os.path.join(static_path, v)
-                    mpy_config_files[path] = v
+                    module_app_path: str = os.path.join(static_path, root_app_dir, v)
+                    module_app_dirpath, _ = os.path.split(module_app_path)
+                    os.makedirs(module_app_dirpath, exist_ok=True)
+                    shutil.copy(v, module_app_path)
+                    mpy_config_files[module_app_path] = v
 
             mpy_config_files = '\n'.join(
                 f'{json.dumps("/" + k)} = {json.dumps(v)}'
@@ -163,11 +178,10 @@ def create_aiohttp_app(
                     js_module_name = js_module_name.replace('/', '_')
                     js_module_name = js_module_name.replace('-', '_')
                     js_module_name = js_module_name.replace('.', '_')
-
                     mpy_config_js_modules_main_content[n] = js_module_name
 
             mpy_config_js_modules_main_content = '\n'.join(
-                f'{json.dumps(k)} = {json.dumps(v)}'
+                f'{json.dumps("/" + k)} = {json.dumps(v)}'
                 for k, v in mpy_config_js_modules_main_content.items()
             )
 

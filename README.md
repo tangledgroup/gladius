@@ -85,7 +85,7 @@ python -B app.py
 Or, in case you want to rebuild on code change:
 
 ```bash
-watchmedo auto-restart --directory="./" --pattern="*.py" --ignore-pattern="./static/**/*.py" --recursive -- python -B app.py
+python -B -u -m gunicorn --reload --bind '0.0.0.0:5000' --timeout 300 --workers 1 --worker-class aiohttp.GunicornWebWorker 'app:app'
 ```
 
 <!--
