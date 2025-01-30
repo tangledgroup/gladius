@@ -113,6 +113,9 @@ class Element(metaclass=ElementType):
         if '__d__' in key:
             key = key.replace('__d__', '.')
 
+        if '__c__' in key:
+            key = key.replace('__c__', ':')
+
         # python reserved keywords
         if key.endswith('_'):
             key = key[:-1]

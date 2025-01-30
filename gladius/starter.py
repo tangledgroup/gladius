@@ -147,7 +147,9 @@ def create_aiohttp_app(
                 print(f'{root_app_dir=}')
 
                 # remove "__app__" directory, and copy with new content
-                shutil.rmtree(root_app_dir, ignore_errors=True)
+                print(os.path.join(static_path, root_app_dir))
+                shutil.rmtree(os.path.join(static_path, root_app_dir), ignore_errors=True)
+                os.makedirs(os.path.join(static_path, root_app_dir), exist_ok=True)
 
                 # if ready is path to file, copy it into __app__, and include it in config
                 if isinstance(ready, str) and os.path.exists(ready):
