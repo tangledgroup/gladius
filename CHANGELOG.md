@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v0.2.2
+
+Added:
+  - Demo 2: Alpine.js demo, looping messages, handling events.
+
+Fixed:
+  - PyPI project page.
+
 ## v0.2.1
 
 Added:

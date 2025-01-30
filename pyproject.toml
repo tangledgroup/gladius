@@ -1,10 +1,16 @@
 [tool.poetry]
 name = "gladius"
-version = "0.2.1"
-description = "**Gladius** aka \"gladius\" is a library facilitating web application development exclusively in pure **Python**, eliminating the need for HTML, CSS, or JavaScript/TypeScript."
+version = "0.2.2"
+description = "Gladius aka \"gladius\" is a library facilitating web application development exclusively in pure Python, eliminating the need for HTML, CSS, or JavaScript/TypeScript."
 authors = ["Marko Tasic <mtasic85@gmail.com>", "Tangled Group, Inc <info@tangledgroup.com>"]
 license = "MIT"
 readme = "README.md"
+
+[project.urls]
+homepage = "https://github.com/tangledgroup/gladius"
+repository = "https://github.com/tangledgroup/gladius"
+documentation = "https://github.com/tangledgroup/gladius"
+"Bug Tracker" = "https://github.com/tangledgroup/gladius/issues"
 
 [tool.poetry.dependencies]
 python = "^3.10"
