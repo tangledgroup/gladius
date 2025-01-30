@@ -85,7 +85,7 @@ python -B app.py
 Or, in case you want to rebuild on code change:
 
 ```bash
-watchmedo auto-restart --directory=./ --pattern="*.py" --recursive -- python -B app.py
+watchmedo auto-restart --directory="./" --pattern="*.py" --ignore-pattern="./static/**/*.py" --recursive -- python -B app.py
 ```
 
 <!--

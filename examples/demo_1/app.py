@@ -7,11 +7,8 @@ npm_packages = {
     'nprogress': ['nprogress.js', 'nprogress.css'],
 }
 
-# create simple aiohttp web server
-g, page, app = create_aiohttp_app(npm_packages=npm_packages) # type: ignore
-
 # client-side code, never executed on server-side
-def on_load():
+def ready():
     # this code is run on client-side only
     from pyscript import document, window, when # type: ignore
     from pyscript.web import page, button # type: ignore
@@ -42,6 +39,8 @@ def on_load():
         btn.innerText = f'The button has been clicked {clicked} time{"" if clicked == 1 else "s"}!'
         NProgress.done()
 
+# create simple aiohttp web server
+g, page, app = create_aiohttp_app(npm_packages=npm_packages, ready=ready) # type: ignore
 
 # create page, body, main, h1 elements
 # and attach client-side script which pysciprt will execute once page is loaded
@@ -49,9 +48,6 @@ with page:
     with g.body(x_data=None):
         with g.main(class_='container'):
               g.h1('Hello world!')
-
-        # attach client-side python script
-        g.script(on_load)
 
 
 # run server

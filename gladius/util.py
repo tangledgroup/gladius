@@ -3,15 +3,13 @@ __all__ = [
     'install_npm_package',
     'compile_npm_package',
     'install_compile_npm_packages',
-    'get_function_body',
 ]
 
 import os
 import json
 import shutil
-from copy import deepcopy
 from subprocess import PIPE
-from typing import Any, Optional, Union
+from typing import Any, Union
 from tempfile import TemporaryDirectory
 
 from tqdm import tqdm
@@ -202,6 +200,7 @@ def bundle_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info
                         # '--format=iife',
                         '--format=esm',
                         '--platform=node',
+                        '--loader:.css=css',
                         '--loader:.js=js',
                         '--loader:.ts=ts',
                         '--loader:.woff=file',

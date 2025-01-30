@@ -5,10 +5,11 @@ __all__ = [
 import os
 import json
 import shutil
+import inspect
 import urllib.request
 from copy import deepcopy
-from subprocess import PIPE
-from typing import Any, Optional, Union
+from tempfile import NamedTemporaryFile
+from typing import Any, Optional, Union, Callable
 
 from aiohttp import web
 
@@ -17,6 +18,11 @@ from .element import Element
 from .gladius import Gladius
 from .aiohttp import aiohttp_middlewares
 from .util import make_page, install_compile_npm_packages
+from .imports import generate_module_map
+from .script import get_function_body
+
+from .aaa.c import d
+from .aaa import b
 
 
 def create_aiohttp_app(
@@ -31,6 +37,7 @@ def create_aiohttp_app(
     npm_packages: dict[str, Union[dict[str, Any], list[str]]]={},
     use_pyscript: bool=True,
     use_micropython: bool=True,
+    ready: Optional[Callable]=None,
 ) -> tuple[Gladius, Element, web.Application]:
     g = Gladius()
     app = web.Application(middlewares=aiohttp_middlewares)
@@ -112,33 +119,30 @@ def create_aiohttp_app(
             mpy_config_files: dict[str, str] | str = {}
             mpy_config_js_modules_main_content: dict[str, str] | str = {}
 
-            # download micropython-stubs - typing
-            url = 'https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/typing.py'
-            dir = 'micropython'
-            filename = 'typing.py'
-            dirpath = os.path.join(static_path, dir)
-            os.makedirs(dirpath, exist_ok=True)
-            path = os.path.join(dirpath, filename)
+            # download micropython-stubs
+            for filename in ('typing.py', 'typing_extensions.py'):
+                url = f'https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/{filename}'
+                dir = 'micropython'
+                dirpath = os.path.join(static_path, dir)
+                os.makedirs(dirpath, exist_ok=True)
+                path = os.path.join(dirpath, filename)
 
-            if not os.path.exists(path):
-                urllib.request.urlretrieve(url, path)
+                if not os.path.exists(path):
+                    urllib.request.urlretrieve(url, path)
 
-            # mpy_config_files[filename] = path
-            mpy_config_files[path] = filename
+                mpy_config_files[path] = filename
 
-            # download micropython-stubs - typing_extensions
-            url = 'https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/typing_extensions.py'
-            dir = 'micropython'
-            filename = 'typing_extensions.py'
-            dirpath = os.path.join(static_path, dir)
-            os.makedirs(dirpath, exist_ok=True)
-            path = os.path.join(dirpath, filename)
+            # ready script
+            if ready:
+                module_map: dict[str, str] = generate_module_map(ready)
+                print(f'{module_map=}')
 
-            if not os.path.exists(path):
-                urllib.request.urlretrieve(url, path)
+                for k, v in module_map.items():
+                    if k.startswith('pyscript'):
+                        continue
 
-            # mpy_config_files[filename] = path
-            mpy_config_files[path] = filename
+                    path = os.path.join(static_path, v)
+                    mpy_config_files[path] = v
 
             mpy_config_files = '\n'.join(
                 f'{json.dumps("/" + k)} = {json.dumps(v)}'
@@ -181,6 +185,11 @@ def create_aiohttp_app(
 
             with page['head']:
                 g.mpy_config(mpy_config_content)
+
+            # ready script
+            if ready:
+                with page['head']:
+                    g.script(ready)
         else:
             raise ValueError('micropython is only supported')
 

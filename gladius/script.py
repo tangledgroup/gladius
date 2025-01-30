@@ -1,12 +1,11 @@
-__all__ = [
-    'get_function_body',
-]
+__all__ = ['get_function_body']
 
 import inspect
 import textwrap
+from typing import Callable
 
 
-def get_function_body(func):
+def get_function_body(func: Callable) -> str:
     # Get the full source code of the function
     source = inspect.getsource(func)
 
