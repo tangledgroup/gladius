@@ -25,7 +25,10 @@ def ready():
         NProgress.done()
 
 # create simple aiohttp web server
-g, page, app = create_aiohttp_app(npm_packages=npm_packages, ready=ready) # type: ignore
+g, page, app = create_aiohttp_app(
+    npm_packages=npm_packages, # type: ignore
+    ready=ready,
+)
 
 # server-side structure
 with page:

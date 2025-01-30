@@ -8,7 +8,10 @@ npm_packages = {
 }
 
 # create simple aiohttp web server
-g, page, app = create_aiohttp_app(npm_packages=npm_packages, ready='client_app.py') # type: ignore
+g, page, app = create_aiohttp_app(
+    npm_packages=npm_packages, # type: ignore
+    ready='client_app.py',
+)
 
 # server-side structure
 with page:
