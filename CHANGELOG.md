@@ -1,12 +1,20 @@
 # CHANGELOG
 
-## TODO:
+## v0.2.1
 
-* Pico: High-level components.
+Added:
+  - Support for client side imports and modules.
 
-## v0.1.14
+Changed:
+  - npm packages built and copied into `static/__npm__` dir
+  - micropython stubs packages copied into `static/__mpy__` dir
+  - user app modules/packages copied into `static/__app__` dir
+  - Reimplemented simplified examples `demo_0` and `demo_1`.
 
-...
+## v0.2.0
+
+Changed:
+  - Redefined/reimplemented API and whole library.
 
 ## v0.1.13
 

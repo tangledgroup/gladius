@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "gladius"
-version = "0.2.0"
-description = "Gladius aka \"gladius\" is a full-stack web framework facilitating web application development exclusively in pure Python, eliminating the need for HTML, CSS, or JavaScript. It is built for those who prefer to use Python, providing access to features typically found in modern web frameworks."
+version = "0.2.1"
+description = "**Gladius** aka \"gladius\" is a library facilitating web application development exclusively in pure **Python**, eliminating the need for HTML, CSS, or JavaScript/TypeScript."
 authors = ["Marko Tasic <mtasic85@gmail.com>", "Tangled Group, Inc <info@tangledgroup.com>"]
 license = "MIT"
 readme = "README.md"
