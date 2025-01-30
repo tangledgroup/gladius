@@ -37,7 +37,7 @@ def create_aiohttp_app(
     npm_packages: dict[str, Union[dict[str, Any], list[str]]]={},
     use_pyscript: bool=True,
     use_micropython: bool=True,
-    ready: Optional[Callable]=None,
+    ready: Optional[Callable | str]=None,
 ) -> tuple[Gladius, Element, web.Application]:
     g = Gladius()
     app = web.Application(middlewares=aiohttp_middlewares)
@@ -149,6 +149,12 @@ def create_aiohttp_app(
                 # remove "__app__" directory, and copy with new content
                 shutil.rmtree(root_app_dir, ignore_errors=True)
 
+                # if ready is path to file, copy it into __app__, and include it in config
+                if isinstance(ready, str) and os.path.exists(ready):
+                    module_app_path: str = os.path.join(static_path, root_app_dir, ready)
+                    shutil.copy(ready, module_app_path)
+                    mpy_config_files[module_app_path] = ready
+
                 for k, v in module_map.items():
                     if k.startswith('pyscript'):
                         continue
@@ -203,7 +209,13 @@ def create_aiohttp_app(
             # ready script
             if ready:
                 with page['head']:
-                    g.script(ready)
+                    if isinstance(ready, Callable):
+                        g.script(ready)
+                    elif isinstance(ready, str):
+                        ready_module_name, _ = os.path.splitext(ready)
+                        g.script(f'\nfrom {ready_module_name} import *\n', type='mpy')
+                    else:
+                        raise ValueError(ready)
         else:
             raise ValueError('micropython is only supported')
 

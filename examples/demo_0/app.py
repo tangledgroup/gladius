@@ -9,8 +9,6 @@ npm_packages = {
 
 # client-side click handler
 def ready():
-    import aaa.b
-    from aaa.c.d import D as DD
     from pyscript import when
     from pyscript.web import page
     from pyscript.js_modules.nprogress import default as NProgress

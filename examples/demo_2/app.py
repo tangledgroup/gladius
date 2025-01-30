@@ -1,44 +1,41 @@
 from aiohttp import web
 from gladius.starter import create_aiohttp_app
 
-
+# required npm packages
 npm_packages = {
     '@picocss/pico': ['css/pico.css'],
-    'alpinejs': ['dist/module.esm.js'],
-    'pinecone-router': ['dist/router.esm.js'],
     'nprogress': ['nprogress.js', 'nprogress.css'],
 }
 
-g, page, app = create_aiohttp_app(npm_packages=npm_packages) # type: ignore
+# client-side click handler
+def ready():
+    import aaa.b
+    from aaa.c.d import D as DD
+    from pyscript import when
+    from pyscript.web import page
+    from pyscript.js_modules.nprogress import default as NProgress
 
+    btn = page['#hello-button'][0]  # get server-created button
+    clicked = 0                     # track clicks
 
-def on_load():
-    from pyscript import document, window # type: ignore
-    from pyscript.js_modules.alpinejs import Alpine # type: ignore
-    from pyscript.js_modules.pinecone_router import default as PineconeRouter # type: ignore
+    @when('click', btn)
+    def on_click(event):
+        global clicked
+        NProgress.start()
+        clicked += 1
+        btn.innerText = f'Clicked {clicked} time{"s" if clicked !=1 else ""}!'
+        NProgress.done()
 
+# create simple aiohttp web server
+g, page, app = create_aiohttp_app(npm_packages=npm_packages, ready=ready) # type: ignore
 
-    window.Alpine = Alpine
-
-
-    def alpine_init(event):
-        print('alpine:init', event)
-
-
-    document.addEventListener('alpine:init', alpine_init)
-    Alpine.plugin(PineconeRouter)
-    Alpine.start()
-
-    document.body.append('Hello from PyScript')
-
-
+# server-side structure
 with page:
     with g.body(x_data=None):
         with g.main(class_='container'):
-              g.h1('Hello world!')
+            g.h1('Gladius Demo')
+            g.button('Click me!', id='hello-button')    # create button on server
 
-        g.script(on_load)
-
-
+# start application
 if __name__ == '__main__':
     web.run_app(app, host='0.0.0.0', port=5000)
