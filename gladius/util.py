@@ -289,7 +289,7 @@ def install_compile_npm_packages(
     page_scripts = []
     dest_paths: list[str] = []
 
-    with TemporaryDirectory() as build_dir:
+    with TemporaryDirectory(delete=False) as build_dir:
         # print(f'{build_dir=}')
 
         p = npm(

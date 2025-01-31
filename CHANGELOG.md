@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v0.2.3
+
+Changed:
+  - `starter.py` does not delete `TemporaryDirectory`
+
 ## v0.2.2
 
 Added:
