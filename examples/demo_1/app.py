@@ -15,7 +15,7 @@ g, page, app = create_aiohttp_app(
 
 # server-side structure
 with page:
-    with g.body(x_data=None):
+    with g.body():
         with g.main(class_='container'):
             g.h1('Gladius Demo')
             g.button('Click me!', id='hello-button')    # create button on server

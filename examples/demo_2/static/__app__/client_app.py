@@ -20,6 +20,9 @@ def export(func):
 def alpine_init(event):
     print('alpine:init', event)
 
+    #
+    # messages
+    #
     def notify_messages(message):
         items = Alpine.store('messages').items
         items.push(message)
@@ -43,6 +46,12 @@ def send(event):
     notify(message_input.value)
     message_input.value = ''
     message_input.focus()
+
+
+@export
+def f1(x: int) -> int:
+    return int(x ** 2)
+
 
 
 document.addEventListener('alpine:init', alpine_init)

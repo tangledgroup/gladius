@@ -48,6 +48,12 @@ def send(event):
     message_input.focus()
 
 
+@export
+def f1(x: int) -> int:
+    return int(x ** 2)
+
+
+
 document.addEventListener('alpine:init', alpine_init)
 Alpine.plugin(PineconeRouter)
 Alpine.start()
