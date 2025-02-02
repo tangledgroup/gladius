@@ -9,18 +9,18 @@ npm_packages = {
 
 # client-side click handler
 def ready():
-    from pyscript import when
-    from pyscript.web import page
-    from pyscript.js_modules.nprogress import default as NProgress
+    from pyscript import when # type: ignore
+    from pyscript.web import page # type: ignore
+    from pyscript.js_modules.nprogress import default as NProgress # type: ignore
 
     btn = page['#hello-button'][0]  # get server-created button
-    clicked = 0                     # track clicks
+    clicked = 0                     # track clicks # noqa
 
     @when('click', btn)
     def on_click(event):
         global clicked
         NProgress.start()
-        clicked += 1
+        clicked += 1 # type: ignore
         btn.innerText = f'Clicked {clicked} time{"s" if clicked !=1 else ""}!'
         NProgress.done()
 

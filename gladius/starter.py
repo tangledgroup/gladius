@@ -21,9 +21,6 @@ from .util import make_page, install_compile_npm_packages
 from .imports import generate_module_map
 from .script import get_function_body
 
-from .aaa.c import d
-from .aaa import b
-
 
 def create_aiohttp_app(
     root_dir: Optional[str]=None,
@@ -158,6 +155,12 @@ def create_aiohttp_app(
                     mpy_config_files[module_app_path] = ready
 
                 for k, v in module_map.items():
+                    if k.startswith('json'):
+                        continue
+
+                    if k.startswith('typing'):
+                        continue
+
                     if k.startswith('pyscript'):
                         continue
 

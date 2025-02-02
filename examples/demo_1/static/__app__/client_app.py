@@ -4,8 +4,10 @@ from pyscript.js_modules.nprogress import default as NProgress
 
 from client_utils import f0
 
+
 btn = page['#hello-button'][0]  # get server-created button
 clicked = 0                     # track clicks
+
 
 @when('click', btn)
 def on_click(event):

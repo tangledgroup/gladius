@@ -24,7 +24,7 @@ def alpine_init(event):
     # messages
     #
     def notify_messages(message):
-        items = Alpine.store('messages').items
+        items: 'Array' = Alpine.store('messages').items
         items.push(message)
 
     Alpine.store('messages', to_js({
