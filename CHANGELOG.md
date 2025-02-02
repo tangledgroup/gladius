@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v0.2.4
+
+Added:
+  - Demo 3: Reactive Notes example
+
+Fixed:
+  - Issue with `aaa` demo package.
+
 ## v0.2.3
 
 Changed:
