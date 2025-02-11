@@ -1,7 +1,7 @@
 [project]
 name = "gladius"
 version = "0.2.5"
-description = "Gladius aka \"gladius\" is a library facilitating web application development exclusively in pure Python, eliminating the need for HTML, CSS, or JavaScript/TypeScript."
+description = "Gladius is a library facilitating web application development exclusively in pure Python"
 authors = [
     { name = "Tangled Group, Inc", email = "info@tangledgroup.com" },
     { name = "Marko Tasic", email = "mtasic85@gmail.com" },
