@@ -155,6 +155,12 @@ def create_aiohttp_app(
                     mpy_config_files[module_app_path] = ready
 
                 for k, v in module_map.items():
+                    if k.startswith('os'):
+                        continue
+
+                    if k.startswith('time'):
+                        continue
+
                     if k.startswith('json'):
                         continue
 

@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v0.3.0a
+
+Changed:
+  - Replaced pyscript/micropython with Brython
+
+## v0.2.5
+
+Fixed:
+  - Do not try to include: `os` and `time` packages/modules.
+
 ## v0.2.4
 
 Added:
