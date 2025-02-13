@@ -5,6 +5,11 @@
 Changed:
   - Replaced pyscript/micropython with Brython
 
+## v0.2.6
+
+Changed:
+  - For deployments, tolerate missing `nodejs` binaries.
+
 ## v0.2.5
 
 Fixed:

@@ -13,7 +13,11 @@ from typing import Any, Union
 from tempfile import TemporaryDirectory
 
 from tqdm import tqdm
-from nodejs_wheel import npm, npx
+
+try:
+    from nodejs_wheel import npm, npx
+except ImportError:
+    pass
 
 from .element import Element
 from .gladius import Gladius
