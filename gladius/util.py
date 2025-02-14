@@ -106,6 +106,13 @@ def install_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_inf
         return_completed_process=True,
     )
 
+    if p.returncode != 0:
+        print('install_npm_package:', p)
+        print('stdout:')
+        print(p.stdout)
+        print('stderr:')
+        print(p.stderr)
+
     assert p.returncode == 0
     # print(f'install_npm_package {p=}')
 

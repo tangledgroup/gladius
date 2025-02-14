@@ -5,6 +5,12 @@
 Changed:
   - Replaced pyscript/micropython with Brython
 
+## v0.2.7
+
+Changed:
+  - Current working dir in `create_aiohttp_app`.
+  - Print error in `install_npm_package`.
+
 ## v0.2.6
 
 Changed:

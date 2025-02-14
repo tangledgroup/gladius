@@ -56,7 +56,7 @@ def create_aiohttp_app(
                 'micropython.wasm',
             ]
 
-    root_npm_dir: str = os.path.join(static_path, '__npm__')
+    root_npm_dir: str = os.path.join(os.getcwd(), static_path, '__npm__')
     print(f'{root_npm_dir=}')
 
     npm_paths, npm_links, npm_scripts = install_compile_npm_packages(root_npm_dir, npm_packages)
