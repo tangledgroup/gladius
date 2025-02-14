@@ -206,7 +206,7 @@ def bundle_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info
                         src_path,
                         '--bundle',
                         # '--minify',
-                        '--sourcemap',
+                        # '--sourcemap',
                         f'--outfile={dest_path}',
                         # '--format=iife',
                         '--format=esm',

@@ -1,6 +1,6 @@
 [project]
 name = "gladius"
-version = "0.2.7"
+version = "0.2.8"
 description = "Gladius is a library facilitating web application development exclusively in pure Python"
 authors = [
     { name = "Tangled Group, Inc", email = "info@tangledgroup.com" },

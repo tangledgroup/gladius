@@ -5,6 +5,11 @@
 Changed:
   - Replaced pyscript/micropython with Brython
 
+## v0.2.8
+
+Changed:
+  - `esbuild` disable `sourcemap`.
+
 ## v0.2.7
 
 Changed:
