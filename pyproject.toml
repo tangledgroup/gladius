@@ -1,6 +1,6 @@
 [project]
 name = "gladius"
-version = "0.2.8"
+version = "0.2.9"
 description = "Gladius is a library facilitating web application development exclusively in pure Python"
 authors = [
     { name = "Tangled Group, Inc", email = "info@tangledgroup.com" },
@@ -17,17 +17,18 @@ documentation = "https://github.com/tangledgroup/gladius"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-attrs = "^24.2.0"
+attrs = "^25.1.0"
 cattrs = "^24.1.2"
 tqdm = "^4.67.1"
-nodejs-wheel = {version = "^22.13.0", optional = true}
+nodejs-wheel = {version = "^22.14.0", optional = true}
 uvloop = {version = "^0.21.0", optional = true}
-aiohttp = {extras = ["speedups"], version = "^3.10.10", optional = true}
+aiohttp = {extras = ["speedups"], version = "^3.11.12", optional = true}
 gunicorn = {version = "23.0.0", optional = true}
-watchdog = {extras = ["watchmedo"], version = "^6.0.0", optional = true}
+# watchdog = {extras = ["watchmedo"], version = "^6.0.0", optional = true}
 
 [tool.poetry.extras]
-all = ["uvloop", "aiohttp", "gunicorn", "watchdog", "nodejs-wheel"]
+# all = ["uvloop", "aiohttp", "gunicorn", "watchdog", "nodejs-wheel"]
+all = ["uvloop", "aiohttp", "gunicorn", "nodejs-wheel"]
 
 [build-system]
 requires = ["poetry-core"]

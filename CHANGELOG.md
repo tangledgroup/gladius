@@ -5,6 +5,11 @@
 Changed:
   - Replaced pyscript/micropython with Brython
 
+## v0.2.9
+
+Changed:
+  - Updated all requirements
+
 ## v0.2.8
 
 Changed:
