@@ -9,14 +9,15 @@ npm_packages = {
 
 # client-side click handler
 def ready():
-    from pyscript import when # type: ignore
-    from pyscript.web import page # type: ignore
-    from pyscript.js_modules.nprogress import default as NProgress # type: ignore
+    from browser import window, document, bind # type: ignore
+    from client_utils import f0
+    NProgress = window.nprogress.default
 
-    btn = page['#hello-button'][0]  # get server-created button
-    clicked = 0                     # track clicks # noqa
+    btn = document.getElementById('hello-button') # get server-created button
+    clicked = 0                                   # track clicks # noqa
 
-    @when('click', btn)
+
+    @bind(btn, 'click')
     def on_click(event):
         global clicked
         NProgress.start()
@@ -24,12 +25,12 @@ def ready():
         btn.innerText = f'Clicked {clicked} time{"s" if clicked !=1 else ""}!'
         NProgress.done()
 
+
 # create simple aiohttp web server
 g, page, app = create_aiohttp_app(
     npm_packages=npm_packages, # type: ignore
+    use_brython=True,
     ready=ready,
-    use_pyscript=True,
-    use_micropython=True,
 )
 
 # server-side structure

@@ -3,12 +3,14 @@ __all__ = [
 ]
 
 import os
+import sys
 import json
 import shutil
-import inspect
+# import inspect
+# import textwrap
 import urllib.request
 from copy import deepcopy
-from tempfile import NamedTemporaryFile
+# from tempfile import NamedTemporaryFile
 from typing import Any, Optional, Union, Callable
 
 from aiohttp import web
@@ -34,7 +36,7 @@ def create_aiohttp_app(
     npm_packages: dict[str, Union[dict[str, Any], list[str]]]={},
     use_brython: bool=True,
     use_pyscript: bool=False,
-    use_micropython: bool=True,
+    use_micropython: bool=False,
     ready: Optional[Callable | str]=None,
 ) -> tuple[Gladius, Element, web.Application]:
     g = Gladius()
@@ -45,17 +47,28 @@ def create_aiohttp_app(
     page_scripts = deepcopy(scripts)
     npm_packages = deepcopy(npm_packages)
 
-    if use_pyscript:
-        if use_micropython:
-            npm_packages['@pyscript/core'] = [
-                'dist/core.js',
-                'dist/core.css',
-            ]
+    if use_brython:
+        # NOTE: https://github.com/tangledgroup/gladius/commit/b019ddea7fbc41074bdd7da921cdbcf612f8da13
+        npm_packages['brython'] = {
+            'version': '3.13.1',
+            'copy': {
+                'brython.js': 'brython/',
+                'brython_stdlib.js': 'brython/',
+            },
+        }
+    elif use_pyscript:
+        if not use_micropython:
+            raise ValueError('micropython is only supported')
 
-            npm_packages['@micropython/micropython-webassembly-pyscript'] = [
-                'micropython.mjs',
-                'micropython.wasm',
-            ]
+        npm_packages['@pyscript/core'] = [
+            'dist/core.js',
+            'dist/core.css',
+        ]
+
+        npm_packages['@micropython/micropython-webassembly-pyscript'] = [
+            'micropython.mjs',
+            'micropython.wasm',
+        ]
 
     root_npm_dir: str = os.path.join(os.getcwd(), static_path, '__npm__')
     print(f'{root_npm_dir=}')
@@ -113,122 +126,202 @@ def create_aiohttp_app(
         os.makedirs(favicon_dest_dirpath, exist_ok=True)
         shutil.copy(favicon_src_path, favicon_dest_path)
 
-    # pyscript
-    if use_pyscript:
-        if use_micropython:
-            # print(f'{npm_paths=}')
-            mpy_config_content: list[str] | str = []
-            mpy_config_files: dict[str, str] | str = {}
-            mpy_config_js_modules_main_content: dict[str, str] | str = {}
+    if use_brython:
+        bpy_config_js_modules_main_content: dict[str, str] | str = {}
 
-            # download micropython-stubs into "__mpy__" directory
-            root_mpy_dir: str = '__mpy__'
-            print(f'{root_mpy_dir=}')
+        # download brython into "__bpy__" directory
+        root_bpy_dir: str = '__bpy__'
+        print(f'{root_bpy_dir=}')
 
-            for filename in ('typing.py', 'typing_extensions.py'):
-                url = f'https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/{filename}'
-                dirpath = os.path.join(static_path, root_mpy_dir)
-                os.makedirs(dirpath, exist_ok=True)
-                path = os.path.join(dirpath, filename)
+        with page['head']:
+            g.script(src=os.path.join('/', 'static', '__npm__', 'brython', 'brython.js'))
+            g.script(src=os.path.join('/', 'static', '__npm__', 'brython', 'brython_stdlib.js'))
 
-                if not os.path.exists(path):
-                    urllib.request.urlretrieve(url, path)
+        # ready script
+        if ready:
+            module_map: dict[str, str] = generate_module_map(ready)
+            print(f'{module_map=}')
 
-                mpy_config_files[path] = filename
+            root_app_dir: str = '__app__'
+            print(f'{root_app_dir=}')
 
-            # ready script
-            if ready:
-                module_map: dict[str, str] = generate_module_map(ready)
-                print(f'{module_map=}')
+            # remove "__app__" directory, and copy with new content
+            print(os.path.join(static_path, root_app_dir))
+            shutil.rmtree(os.path.join(static_path, root_app_dir), ignore_errors=True)
+            os.makedirs(os.path.join(static_path, root_app_dir), exist_ok=True)
 
-                root_app_dir: str = '__app__'
-                print(f'{root_app_dir=}')
+            # if ready is path to file, copy it into __app__, and include it in config
+            if isinstance(ready, str) and os.path.exists(ready):
+                module_app_path: str = os.path.join(static_path, root_app_dir, ready)
+                shutil.copy(ready, module_app_path)
 
-                # remove "__app__" directory, and copy with new content
-                print(os.path.join(static_path, root_app_dir))
-                shutil.rmtree(os.path.join(static_path, root_app_dir), ignore_errors=True)
-                os.makedirs(os.path.join(static_path, root_app_dir), exist_ok=True)
+            for k, v in module_map.items():
+                skip_module = False
 
-                # if ready is path to file, copy it into __app__, and include it in config
-                if isinstance(ready, str) and os.path.exists(ready):
-                    module_app_path: str = os.path.join(static_path, root_app_dir, ready)
-                    shutil.copy(ready, module_app_path)
-                    mpy_config_files[module_app_path] = ready
+                for m in ['browser']:
+                    if k.startswith(m):
+                        skip_module = True
+                        break
 
-                for k, v in module_map.items():
-                    if k.startswith('os'):
-                        continue
+                for m in sys.stdlib_module_names:
+                    if k.startswith(m):
+                        skip_module = True
+                        break
 
-                    if k.startswith('time'):
-                        continue
-
-                    if k.startswith('json'):
-                        continue
-
-                    if k.startswith('typing'):
-                        continue
-
-                    if k.startswith('pyscript'):
-                        continue
-
-                    module_app_path: str = os.path.join(static_path, root_app_dir, v)
-                    module_app_dirpath, _ = os.path.split(module_app_path)
-                    os.makedirs(module_app_dirpath, exist_ok=True)
-                    shutil.copy(v, module_app_path)
-                    mpy_config_files[module_app_path] = v
-
-            mpy_config_files = '\n'.join(
-                f'{json.dumps("/" + k)} = {json.dumps(v)}'
-                for k, v in mpy_config_files.items()
-            )
-            # print(mpy_config_files)
-
-            # include pyscript and micropython
-            for k, v in npm_paths.items():
-                if k in ('@pyscript/core', '@micropython/micropython-webassembly-pyscript'):
+                if skip_module:
                     continue
 
-                for n in v:
-                    _, ext = os.path.split(n)
+                module_app_path: str = os.path.join(static_path, root_app_dir, v)
+                module_app_dirpath, _ = os.path.split(module_app_path)
+                os.makedirs(module_app_dirpath, exist_ok=True)
+                shutil.copy(v, module_app_path)
 
-                    js_module_name: str = k
-                    js_module_name = js_module_name.replace('@', '')
-                    js_module_name = js_module_name.replace('/', '_')
-                    js_module_name = js_module_name.replace('-', '_')
-                    js_module_name = js_module_name.replace('.', '_')
-                    mpy_config_js_modules_main_content[n] = js_module_name
+        for k, v in npm_paths.items():
+            if k in ['brython']:
+                continue
 
-            mpy_config_js_modules_main_content = '\n'.join(
-                f'{json.dumps("/" + k)} = {json.dumps(v)}'
-                for k, v in mpy_config_js_modules_main_content.items()
-            )
+            for n in v:
+                _, ext = os.path.split(n)
 
-            # print(f'{mpy_config_js_modules_main_content=}')
+                js_module_name: str = k
+                js_module_name = js_module_name.replace('@', '')
+                js_module_name = js_module_name.replace('/', '_')
+                js_module_name = js_module_name.replace('-', '_')
+                js_module_name = js_module_name.replace('.', '_')
+                bpy_config_js_modules_main_content[n] = js_module_name
 
-            mpy_config_content = '\n'.join([
-                '\n',
+        # print(f'{bpy_config_js_modules_main_content=}')
 
-                '[files]',
-                mpy_config_files,
+        with page['head']:
+            for k, v in bpy_config_js_modules_main_content.items():
+                if os.path.splitext(k)[1] in ('.js', '.mjs'):
+                    g.script(f'''
+                        import * as {v} from '/{k}';
+                        window.{v} = {v};
+                    ''', type='module')
+                elif os.path.splitext(k)[1] == '.css':
+                    g.link(rel='stylesheet', href=k)
+                else:
+                    g.link(href=k)
 
-                '[js_modules.main]',
-                mpy_config_js_modules_main_content,
-            ])
-
-            with page['head']:
-                g.mpy_config(mpy_config_content)
-
-            # ready script
-            if ready:
-                with page['head']:
-                    if isinstance(ready, Callable):
-                        g.script(ready)
-                    elif isinstance(ready, str):
-                        ready_module_name, _ = os.path.splitext(ready)
-                        g.script(f'\nfrom {ready_module_name} import *\n', type='mpy')
-                    else:
-                        raise ValueError(ready)
-        else:
+            if isinstance(ready, Callable):
+                g.script(ready, type='text/python', defer=None)
+            elif isinstance(ready, str):
+                ready_module_name, _ = os.path.splitext(ready)
+                g.script(f'\nimport sys; sys.path = ["static/__app__"]\nfrom {ready_module_name} import *\n', type='text/python', defer=None)
+            else:
+                raise ValueError(ready)
+    elif use_pyscript:
+        if not use_micropython:
             raise ValueError('micropython is only supported')
+
+        # print(f'{npm_paths=}')
+        mpy_config_content: list[str] | str = []
+        mpy_config_files: dict[str, str] | str = {}
+        mpy_config_js_modules_main_content: dict[str, str] | str = {}
+
+        # download micropython-stubs into "__mpy__" directory
+        root_mpy_dir: str = '__mpy__'
+        print(f'{root_mpy_dir=}')
+
+        for filename in ('typing.py', 'typing_extensions.py'):
+            url = f'https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/{filename}'
+            dirpath = os.path.join(static_path, root_mpy_dir)
+            os.makedirs(dirpath, exist_ok=True)
+            path = os.path.join(dirpath, filename)
+
+            if not os.path.exists(path):
+                urllib.request.urlretrieve(url, path)
+
+            mpy_config_files[path] = filename
+
+        # ready script
+        if ready:
+            module_map: dict[str, str] = generate_module_map(ready)
+            print(f'{module_map=}')
+
+            root_app_dir: str = '__app__'
+            print(f'{root_app_dir=}')
+
+            # remove "__app__" directory, and copy with new content
+            print(os.path.join(static_path, root_app_dir))
+            shutil.rmtree(os.path.join(static_path, root_app_dir), ignore_errors=True)
+            os.makedirs(os.path.join(static_path, root_app_dir), exist_ok=True)
+
+            # if ready is path to file, copy it into __app__, and include it in config
+            if isinstance(ready, str) and os.path.exists(ready):
+                module_app_path: str = os.path.join(static_path, root_app_dir, ready)
+                shutil.copy(ready, module_app_path)
+                mpy_config_files[module_app_path] = ready
+
+            for k, v in module_map.items():
+                skip_module = False
+
+                for m in sys.stdlib_module_names:
+                    if k.startswith(m):
+                        skip_module = True
+                        break
+
+                if skip_module:
+                    continue
+
+                module_app_path: str = os.path.join(static_path, root_app_dir, v)
+                module_app_dirpath, _ = os.path.split(module_app_path)
+                os.makedirs(module_app_dirpath, exist_ok=True)
+                shutil.copy(v, module_app_path)
+                mpy_config_files[module_app_path] = v
+
+        mpy_config_files = '\n'.join(
+            f'{json.dumps("/" + k)} = {json.dumps(v)}'
+            for k, v in mpy_config_files.items()
+        )
+        # print(mpy_config_files)
+
+        # include pyscript and micropython
+        for k, v in npm_paths.items():
+            if k in ('@pyscript/core', '@micropython/micropython-webassembly-pyscript'):
+                continue
+
+            for n in v:
+                _, ext = os.path.split(n)
+
+                js_module_name: str = k
+                js_module_name = js_module_name.replace('@', '')
+                js_module_name = js_module_name.replace('/', '_')
+                js_module_name = js_module_name.replace('-', '_')
+                js_module_name = js_module_name.replace('.', '_')
+                mpy_config_js_modules_main_content[n] = js_module_name
+
+        mpy_config_js_modules_main_content = '\n'.join(
+            f'{json.dumps("/" + k)} = {json.dumps(v)}'
+            for k, v in mpy_config_js_modules_main_content.items()
+        )
+
+        # print(f'{mpy_config_js_modules_main_content=}')
+
+        mpy_config_content = '\n'.join([
+            '\n',
+
+            '[files]',
+            mpy_config_files,
+
+            '[js_modules.main]',
+            mpy_config_js_modules_main_content,
+        ])
+
+        with page['head']:
+            g.mpy_config(mpy_config_content)
+
+        # ready script
+        if ready:
+            with page['head']:
+                if isinstance(ready, Callable):
+                    g.script(ready, type='mpy')
+                elif isinstance(ready, str):
+                    ready_module_name, _ = os.path.splitext(ready)
+                    g.script(f'\nfrom {ready_module_name} import *\n', type='mpy')
+                else:
+                    raise ValueError(ready)
+
 
     return g, page, app

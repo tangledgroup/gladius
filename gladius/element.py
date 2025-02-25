@@ -19,7 +19,7 @@ class ElementType(type):
         # s(f'{cls=} {tag=}')
         assert tag in VOID_TAGS or tag in CONTAINER_TAGS or '_' in tag, f'unsupported tag {tag!r}'
 
-        # web component / pyscript
+        # web component / python script
         if '_' in tag:
             tag = tag.replace('_', '-')
 
@@ -232,8 +232,16 @@ class ContainerElement(Element):
                 text_node: Element = self.ctx.text(text_content, inline=True) # type: ignore
             elif self.tag == 'script' and callable(text_content):
                 source_content: str = '\n' + get_function_body(text_content)
+
+                if 'type' in kwargs:
+                    t = kwargs['type']
+
+                    if t == 'text/python':
+                        # brython
+                        source_content = f'\nimport sys; sys.path = ["static/__app__"]\n{source_content}'
+
                 text_node: Element = self.ctx.text(source_content, inline=True) # type: ignore
-                self.attrs['type'] = 'mpy'
+                # self.attrs['type'] = 'mpy'
             else:
                 raise ValueError(text_content)
 
