@@ -200,6 +200,9 @@ def bundle_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info
                 # if global_name:
                 #     global_name_cmd.append(f'--global-name={global_name}')
 
+                # esbuild src_path --bundle --outfile=dest_path --format=esm --platform=node --loader:.css=css --loader:.js=js --loader:.ts=ts --loader:.woff=file --loader:.woff2=file --loader:.ttf=file --loader:.svg=file --loader:.wasm=file
+                # esbuild node_modules/nprogress/nprogress.js --bundle --outfile=dist/nprogress.js --format=esm --platform=node --loader:.css=css --loader:.js=js --loader:.ts=ts --loader:.woff=file --loader:.woff2=file --loader:.ttf=file --loader:.svg=file --loader:.wasm=file
+                # esbuild node_modules/nprogress/nprogress.css --bundle --outfile=dist/nprogress.css --format=esm --platform=node --loader:.css=css --loader:.js=js --loader:.ts=ts --loader:.woff=file --loader:.woff2=file --loader:.ttf=file --loader:.svg=file --loader:.wasm=file
                 p = npx(
                     [
                         'esbuild',

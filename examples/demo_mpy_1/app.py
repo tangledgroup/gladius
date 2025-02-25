@@ -10,6 +10,8 @@ npm_packages = {
 # create simple aiohttp web server
 g, page, app = create_aiohttp_app(
     npm_packages=npm_packages, # type: ignore
+    use_pyscript=True,
+    use_micropython=True,
     ready='client_app.py',
 )
 

@@ -32,7 +32,8 @@ def create_aiohttp_app(
     links: list[str | dict]=[],
     scripts: list[str | dict]=[],
     npm_packages: dict[str, Union[dict[str, Any], list[str]]]={},
-    use_pyscript: bool=True,
+    use_brython: bool=True,
+    use_pyscript: bool=False,
     use_micropython: bool=True,
     ready: Optional[Callable | str]=None,
 ) -> tuple[Gladius, Element, web.Application]:

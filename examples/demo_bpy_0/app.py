@@ -28,6 +28,8 @@ def ready():
 g, page, app = create_aiohttp_app(
     npm_packages=npm_packages, # type: ignore
     ready=ready,
+    use_pyscript=True,
+    use_micropython=True,
 )
 
 # server-side structure
