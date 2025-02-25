@@ -1,5 +1,3 @@
-# import sys; sys.path = ['static/__app__']
-
 from browser import window, document, bind # type: ignore
 from client_utils import f0
 NProgress = window.nprogress.default

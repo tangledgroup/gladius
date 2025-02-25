@@ -1846,4 +1846,3 @@ export {
   micropython_default as default,
   loadMicroPython
 };
-//# sourceMappingURL=micropython.mjs.map

@@ -34,11 +34,12 @@ def create_aiohttp_app(
     links: list[str | dict]=[],
     scripts: list[str | dict]=[],
     npm_packages: dict[str, Union[dict[str, Any], list[str]]]={},
-    use_brython: bool=True,
+    use_brython: bool=False,
     use_pyscript: bool=False,
     use_micropython: bool=False,
     ready: Optional[Callable | str]=None,
 ) -> tuple[Gladius, Element, web.Application]:
+    assert use_brython or use_pyscript
     g = Gladius()
     app = web.Application(middlewares=aiohttp_middlewares)
 
@@ -257,6 +258,11 @@ def create_aiohttp_app(
             for k, v in module_map.items():
                 skip_module = False
 
+                for m in ['pyscript']:
+                    if k.startswith(m):
+                        skip_module = True
+                        break
+
                 for m in sys.stdlib_module_names:
                     if k.startswith(m):
                         skip_module = True
@@ -322,6 +328,5 @@ def create_aiohttp_app(
                     g.script(f'\nfrom {ready_module_name} import *\n', type='mpy')
                 else:
                     raise ValueError(ready)
-
 
     return g, page, app
