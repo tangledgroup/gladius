@@ -1,9 +1,13 @@
 # CHANGELOG
 
-## v0.3.0a
+## v0.3.0
 
-Changed:
-  - Replaced pyscript/micropython with Brython
+Added:
+  - Support for Brython
+  - More Brython demos
+
+Removed:
+  - Support for watchdog
 
 ## v0.2.9
 
