@@ -1,5 +1,6 @@
 # to learn more about Alpine visit https://alpinejs.dev/
 from browser import window, document # type: ignore
+from javascript import this
 
 NProgress = window.nprogress.default
 Alpine = window.alpinejs.Alpine
@@ -41,6 +42,8 @@ def alpine_init(event):
 
     template = Handlebars.compile('{{> Main }}')
     document.body.innerHTML = template()
+
+    window.console.log(this())
 
 
 @export

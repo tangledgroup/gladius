@@ -159,7 +159,7 @@ def create_aiohttp_app(
             for k, v in module_map.items():
                 skip_module = False
 
-                for m in ['browser']:
+                for m in ['browser', 'javascript']:
                     if k.startswith(m):
                         skip_module = True
                         break
