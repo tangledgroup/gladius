@@ -4,7 +4,7 @@ from browser import window, document # type: ignore
 NProgress = window.nprogress.default
 Alpine = window.alpinejs.Alpine
 PineconeRouter = window.pinecone_router.default
-
+Handlebars = window.handlebars.default
 
 window.Alpine = Alpine
 
@@ -32,6 +32,15 @@ def alpine_init(event):
       'items': [],
       'notify': notify_messages,
     })
+
+    #
+    # handlebars
+    #
+    for el in document.querySelectorAll('script[type="handlebars"]'):
+        Handlebars.registerPartial(el.getAttribute('name'), el.innerHTML)
+
+    template = Handlebars.compile('{{> Main }}')
+    document.body.innerHTML = template()
 
 
 @export
