@@ -6,11 +6,9 @@ import os
 import sys
 import json
 import shutil
-# import inspect
-# import textwrap
 import urllib.request
 from copy import deepcopy
-# from tempfile import NamedTemporaryFile
+from types import ModuleType
 from typing import Any, Optional, Union, Callable
 
 from aiohttp import web
@@ -21,7 +19,6 @@ from .gladius import Gladius
 from .aiohttp import aiohttp_middlewares
 from .util import make_page, install_compile_npm_packages
 from .imports import generate_module_map
-from .script import get_function_body
 
 
 def create_aiohttp_app(
@@ -72,7 +69,7 @@ def create_aiohttp_app(
         ]
 
     root_npm_dir: str = os.path.join(os.getcwd(), static_path, '__npm__')
-    print(f'{root_npm_dir=}')
+    # print(f'{root_npm_dir=}')
 
     npm_paths, npm_links, npm_scripts = install_compile_npm_packages(root_npm_dir, npm_packages)
     page_links.extend(npm_links)
@@ -131,8 +128,9 @@ def create_aiohttp_app(
         bpy_config_js_modules_main_content: dict[str, str] | str = {}
 
         # download brython into "__bpy__" directory
-        root_bpy_dir: str = '__bpy__'
-        print(f'{root_bpy_dir=}')
+        # root_bpy_dir: str = '__bpy__'
+        root_bpy_dir: str = os.path.join(os.getcwd(), static_path, '__bpy__')
+        # print(f'{root_bpy_dir=}')
 
         with page['head']:
             g.script(src=os.path.join('/', 'static', '__npm__', 'brython', 'brython.js'))
@@ -141,15 +139,18 @@ def create_aiohttp_app(
         # ready script
         if ready:
             module_map: dict[str, str] = generate_module_map(ready)
-            print(f'{module_map=}')
+            # print(f'{module_map=}')
 
-            root_app_dir: str = '__app__'
-            print(f'{root_app_dir=}')
+            # root_app_dir: str = '__app__'
+            root_app_dir: str = os.path.join(os.getcwd(), static_path, '__app__')
+            # print(f'{root_app_dir=}')
 
             # remove "__app__" directory, and copy with new content
-            print(os.path.join(static_path, root_app_dir))
-            shutil.rmtree(os.path.join(static_path, root_app_dir), ignore_errors=True)
-            os.makedirs(os.path.join(static_path, root_app_dir), exist_ok=True)
+            # print(os.path.join(static_path, root_app_dir))
+            # shutil.rmtree(os.path.join(static_path, root_app_dir), ignore_errors=True)
+            # os.makedirs(os.path.join(static_path, root_app_dir), exist_ok=True)
+            shutil.rmtree(root_app_dir, ignore_errors=True)
+            os.makedirs(root_app_dir, exist_ok=True)
 
             # if ready is path to file, copy it into __app__, and include it in config
             if isinstance(ready, str) and os.path.exists(ready):
@@ -205,7 +206,9 @@ def create_aiohttp_app(
                 else:
                     g.link(href=k)
 
-            if isinstance(ready, Callable):
+            if isinstance(ready, ModuleType):
+                g.script(ready, type='text/python', defer=None)
+            elif isinstance(ready, Callable):
                 g.script(ready, type='text/python', defer=None)
             elif isinstance(ready, str):
                 ready_module_name, _ = os.path.splitext(ready)
@@ -222,8 +225,9 @@ def create_aiohttp_app(
         mpy_config_js_modules_main_content: dict[str, str] | str = {}
 
         # download micropython-stubs into "__mpy__" directory
-        root_mpy_dir: str = '__mpy__'
-        print(f'{root_mpy_dir=}')
+        # root_mpy_dir: str = '__mpy__'
+        root_mpy_dir: str = os.path.join(os.getcwd(), static_path, '__mpy__')
+        # print(f'{root_mpy_dir=}')
 
         for filename in ('typing.py', 'typing_extensions.py'):
             url = f'https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/{filename}'
@@ -239,15 +243,18 @@ def create_aiohttp_app(
         # ready script
         if ready:
             module_map: dict[str, str] = generate_module_map(ready)
-            print(f'{module_map=}')
+            # print(f'{module_map=}')
 
-            root_app_dir: str = '__app__'
-            print(f'{root_app_dir=}')
+            # root_app_dir: str = '__app__'
+            root_app_dir: str = os.path.join(os.getcwd(), static_path, '__app__')
+            # print(f'{root_app_dir=}')
 
             # remove "__app__" directory, and copy with new content
-            print(os.path.join(static_path, root_app_dir))
-            shutil.rmtree(os.path.join(static_path, root_app_dir), ignore_errors=True)
-            os.makedirs(os.path.join(static_path, root_app_dir), exist_ok=True)
+            # print(os.path.join(static_path, root_app_dir))
+            # shutil.rmtree(os.path.join(static_path, root_app_dir), ignore_errors=True)
+            # os.makedirs(os.path.join(static_path, root_app_dir), exist_ok=True)
+            shutil.rmtree(root_app_dir, ignore_errors=True)
+            os.makedirs(root_app_dir, exist_ok=True)
 
             # if ready is path to file, copy it into __app__, and include it in config
             if isinstance(ready, str) and os.path.exists(ready):
@@ -321,7 +328,10 @@ def create_aiohttp_app(
         # ready script
         if ready:
             with page['head']:
-                if isinstance(ready, Callable):
+                if isinstance(ready, ModuleType):
+                    # FIXME: implement
+                    raise NotImplementedError()
+                elif isinstance(ready, Callable):
                     g.script(ready, type='mpy')
                 elif isinstance(ready, str):
                     ready_module_name, _ = os.path.splitext(ready)

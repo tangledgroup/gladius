@@ -2,6 +2,7 @@ __all__ = ['ElementType', 'Element', 'Text', 'VoidElement', 'ContainerElement']
 
 import json
 # import inspect
+from types import ModuleType
 from typing import Any, Optional, Callable
 
 from .types import BaseGladius
@@ -223,15 +224,16 @@ class ContainerElement(Element):
     children: list[Element | Callable]
 
 
-    def __init__(self, text_content: str | Callable | None=None, children: Optional[list[Element | Callable]]=None, **kwargs):
+    def __init__(self, text_content: str | Callable | ModuleType | None=None, children: Optional[list[Element | Callable]]=None, **kwargs):
         super().__init__(**kwargs)
         self.children = children if children else []
 
         if text_content:
             if isinstance(text_content, str):
                 text_node: Element = self.ctx.text(text_content, inline=True) # type: ignore
-            elif self.tag == 'script' and callable(text_content):
+            elif self.tag == 'script' and (isinstance(text_content, Callable) or isinstance(text_content, ModuleType)):
                 source_content: str = '\n' + get_function_body(text_content)
+                # print(source_content)
 
                 if 'type' in kwargs:
                     t = kwargs['type']

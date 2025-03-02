@@ -1,12 +1,16 @@
 import os
 import ast
 import inspect
+from types import ModuleType
 from typing import Callable
 
 
-def generate_module_map(func: Callable | str) -> dict[str, str]:
+def generate_module_map(func: ModuleType | Callable | str) -> dict[str, str]:
     # Convert the function to an AST for analysis
-    if isinstance(func, Callable):
+    if isinstance(func, ModuleType):
+        source = ast.parse(inspect.getsource(func))
+        current_directory = os.path.dirname(inspect.getfile(func))
+    elif isinstance(func, Callable):
         source = ast.parse(inspect.getsource(func))
         current_directory = os.path.dirname(inspect.getfile(func))
     elif isinstance(func, str):

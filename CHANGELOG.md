@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v0.3.2
+
+Added:
+  - Reload server-side Python app if client-side Python file gets changed. This method uses `gunicorn`.
+  - Directly import client-side Python modules in server-side. This method uses `mock_module.py`.
+
 ## v0.3.1
 
 Fixed:

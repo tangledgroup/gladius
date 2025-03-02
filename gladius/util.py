@@ -295,7 +295,7 @@ def install_compile_npm_packages(
             page_paths = cached_npm_packages['page_paths']
             page_links = cached_npm_packages['page_links']
             page_scripts = cached_npm_packages['page_scripts']
-            print('loaded npm cache', cache_path)
+            # print('loaded npm cache', cache_path)
             return page_paths, page_links, page_scripts
 
     page_paths = {}
