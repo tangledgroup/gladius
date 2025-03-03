@@ -34,7 +34,7 @@ def create_aiohttp_app(
     use_brython: bool=False,
     use_pyscript: bool=False,
     use_micropython: bool=False,
-    ready: Optional[Callable | str]=None,
+    ready: Optional[ModuleType | Callable | str]=None,
 ) -> tuple[Gladius, Element, web.Application]:
     assert use_brython or use_pyscript
     g = Gladius()
@@ -206,13 +206,16 @@ def create_aiohttp_app(
                 else:
                     g.link(href=k)
 
-            if isinstance(ready, ModuleType):
-                g.script(ready, type='text/python', defer=None)
-            elif isinstance(ready, Callable):
+            if isinstance(ready, (ModuleType, Callable)):
                 g.script(ready, type='text/python', defer=None)
             elif isinstance(ready, str):
                 ready_module_name, _ = os.path.splitext(ready)
-                g.script(f'\nimport sys; sys.path = ["static/__app__"]\nfrom {ready_module_name} import *\n', type='text/python', defer=None)
+
+                g.script(
+                    f'\nimport sys; sys.path = ["static/__app__"]\nfrom {ready_module_name} import *\n',
+                    type='text/python',
+                    defer=None,
+                )
             else:
                 raise ValueError(ready)
     elif use_pyscript:

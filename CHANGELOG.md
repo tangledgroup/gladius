@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v0.3.3
+
+Fixed:
+  - Added support for import PyScript modules in server-side
+
 ## v0.3.2
 
 Added:

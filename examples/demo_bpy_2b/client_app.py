@@ -1,6 +1,6 @@
 # to learn more about Alpine visit https://alpinejs.dev/
 from browser import window, document # type: ignore
-from javascript import this
+from javascript import this, JSObject # type: ignore
 
 NProgress = window.nprogress.default
 Alpine = window.alpinejs.Alpine
@@ -26,7 +26,7 @@ def alpine_init(event):
     # messages
     #
     def notify_messages(message):
-        items: 'Array' = Alpine.store('messages').items
+        items: JSObject = Alpine.store('messages').items
         items.push(message)
 
     Alpine.store('messages', {
@@ -40,12 +40,11 @@ def alpine_init(event):
     for el in document.querySelectorAll('script[type="handlebars"]'):
         Handlebars.registerPartial(el.getAttribute('name'), el.innerHTML)
 
-    template = Handlebars.compile('{{> Main }}')
+    template: JSObject = Handlebars.compile('{{> Main }}')
     document.body.innerHTML = template()
 
-    window.console.log(this())
 
-
+# creates `window.send = send`, so it can be used in JavaScript
 @export
 def send(event):
     if not (event.type == 'click' or (event.type == 'keydown' and event.key == 'Enter')):
@@ -54,17 +53,11 @@ def send(event):
     if event and event.preventDefault:
         event.preventDefault()
 
-    notify = Alpine.store('messages').notify
+    notify: JSObject = Alpine.store('messages').notify
     message_input = document.querySelector('input#message')
     notify(message_input.value)
     message_input.value = ''
     message_input.focus()
-
-
-@export
-def f1(x: int) -> int:
-    return int(x ** 2)
-
 
 
 document.addEventListener('alpine:init', alpine_init)
