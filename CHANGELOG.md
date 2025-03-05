@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v0.3.4
+
+Fixed:
+  - Only scripts should be imported, not links, in case of Brython
+
 ## v0.3.3
 
 Fixed:

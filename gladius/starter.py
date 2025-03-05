@@ -179,6 +179,8 @@ def create_aiohttp_app(
                 shutil.copy(v, module_app_path)
 
         for k, v in npm_paths.items():
+            # print(f'npm_paths {k=}: {v=}')
+
             if k in ['brython']:
                 continue
 
@@ -196,15 +198,19 @@ def create_aiohttp_app(
 
         with page['head']:
             for k, v in bpy_config_js_modules_main_content.items():
+                # print(f'{k=}: {v=}')
+
+                # if os.path.splitext(k)[1] in ('.js', '.mjs'):
+                #     g.script(f'''
+                #         import * as {v} from '/{k}';
+                #         window.{v} = {v};
+                #     ''', type='module')
+                # elif os.path.splitext(k)[1] == '.css':
+                #     g.link(rel='stylesheet', href=f'/{k}')
+                # else:
+                #     g.link(href=f'/{k}')
                 if os.path.splitext(k)[1] in ('.js', '.mjs'):
-                    g.script(f'''
-                        import * as {v} from '/{k}';
-                        window.{v} = {v};
-                    ''', type='module')
-                elif os.path.splitext(k)[1] == '.css':
-                    g.link(rel='stylesheet', href=k)
-                else:
-                    g.link(href=k)
+                    g.script(f"import * as {v} from '/{k}'; window.{v} = {v};", type='module')
 
             if isinstance(ready, (ModuleType, Callable)):
                 g.script(ready, type='text/python', defer=None)
