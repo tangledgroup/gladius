@@ -31,6 +31,9 @@ g, page, app = create_aiohttp_app(
     npm_packages=npm_packages, # type: ignore
     use_brython=True,
     ready=ready,
+    app_init_args={
+        'client_max_size': 1024 ** 3,
+    }
 )
 
 # server-side structure

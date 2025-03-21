@@ -35,10 +35,15 @@ def create_aiohttp_app(
     use_pyscript: bool=False,
     use_micropython: bool=False,
     ready: Optional[ModuleType | Callable | str]=None,
+    app_init_args: dict | None=None,
 ) -> tuple[Gladius, Element, web.Application]:
     assert use_brython or use_pyscript
     g = Gladius()
-    app = web.Application(middlewares=aiohttp_middlewares)
+
+    if not app_init_args:
+        app_init_args = {}
+
+    app = web.Application(middlewares=aiohttp_middlewares, **app_init_args)
 
     # install and compile npm packages
     page_links = deepcopy(links)

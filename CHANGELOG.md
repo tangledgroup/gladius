@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v0.3.5
+
+Changed:
+  - Custom aiphttp Application init args
+
 ## v0.3.4
 
 Fixed:
