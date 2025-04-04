@@ -134,7 +134,7 @@ def create_aiohttp_app(
 
         # download brython into "__bpy__" directory
         # root_bpy_dir: str = '__bpy__'
-        root_bpy_dir: str = os.path.join(os.getcwd(), static_path, '__bpy__')
+        # root_bpy_dir: str = os.path.join(os.getcwd(), static_path, '__bpy__')
         # print(f'{root_bpy_dir=}')
 
         with page['head']:
@@ -144,11 +144,11 @@ def create_aiohttp_app(
         # ready script
         if ready:
             module_map: dict[str, str] = generate_module_map(ready)
-            # print(f'{module_map=}')
+            print(f'{module_map=}')
 
             # root_app_dir: str = '__app__'
             root_app_dir: str = os.path.join(os.getcwd(), static_path, '__app__')
-            # print(f'{root_app_dir=}')
+            print(f'{root_app_dir=}')
 
             # remove "__app__" directory, and copy with new content
             # print(os.path.join(static_path, root_app_dir))
@@ -163,16 +163,19 @@ def create_aiohttp_app(
                 shutil.copy(ready, module_app_path)
 
             for k, v in module_map.items():
+                print(f'module_map: {k=}, {v=}')
                 skip_module = False
 
                 for m in ['browser', 'javascript']:
                     if k.startswith(m):
                         skip_module = True
+                        print(f'skipped [0]: {k=}')
                         break
 
                 for m in sys.stdlib_module_names:
                     if k.startswith(m):
                         skip_module = True
+                        print(f'skipped [1]: {k=}')
                         break
 
                 if skip_module:
@@ -223,7 +226,8 @@ def create_aiohttp_app(
                 ready_module_name, _ = os.path.splitext(ready)
 
                 g.script(
-                    f'\nimport sys; sys.path = ["static/__app__"]\nfrom {ready_module_name} import *\n',
+                    # f'\nimport sys; sys.path = ["static/__app__"]\nfrom {ready_module_name} import *\n',
+                    f'\nimport sys; sys.path = ["static/__app__"]\nimport {ready_module_name}\n',
                     type='text/python',
                     defer=None,
                 )
