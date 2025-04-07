@@ -1,5 +1,4 @@
 # Used for Brython, so live reloads on Python files work
-# FIXME: use in pyscript/micropython
 
 class MockObject:
     def __init__(self, name=None):

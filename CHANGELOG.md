@@ -4,13 +4,14 @@
 
 Added:
   - `capture_imports` context manager to capture client app (client-side imports on server-side) and isolate them
+  - Simple web server using `run_app`
 
 Fixed:
   - Importing absolute and relative modules/packages
 
 Removed:
-  - `pyscript` support in favor for `brython`
-  - `create_aiohttp_app`
+  - Removed `pyscript` support in favor for `brython`
+  - Removed `create_aiohttp_app` in favor for `create_app`
 
 ## v0.3.5
 

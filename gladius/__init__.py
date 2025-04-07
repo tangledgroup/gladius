@@ -7,12 +7,9 @@ from . import mock_module
 sys.modules['browser'] = mock_module
 sys.modules['javascript'] = mock_module
 
-# pyscript
-sys.modules['pyscript'] = mock_module
+from .aiohttp import run_app # noqa
 
 from .gladius import * # noqa
 from .element import * # noqa
 from .imports import * # noqa
-from .starter.brython_aiohttp import * # noqa
-
-from .aiohttp import run_app # noqa
+from .starter import * # noqa
