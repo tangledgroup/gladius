@@ -35,7 +35,7 @@ def make_page(
     el: Element
 
     with g.html(lang=lang) as el:
-        with g.head() as head:
+        with g.head() as head: # noqa
             g.meta(charset='utf-8')
             g.meta(name='viewport', content='width=device-width, initial-scale=1')
             g.title(title)
@@ -98,7 +98,7 @@ def install_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_inf
     else:
         raise ValueError(pkg_info)
 
-    p = npm(
+    p = npm( # type: ignore
         ['install', '--save', pkg_name_ver],
         cwd=build_dir,
         stdout=PIPE,
@@ -195,7 +195,7 @@ def bundle_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info
             else:
                 assert isinstance(pkg_info, dict)
 
-                p = npx(
+                p = npx( # type: ignore
                     [
                         'esbuild',
                         src_path,
@@ -266,6 +266,7 @@ def compile_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_inf
 def install_compile_npm_packages(
     static_path: str,
     npm_packages: dict[str, Union[dict[str, Any], list[str]]]={},
+    npm_post_bundle: list[list[str]]=[],
 ) -> tuple[dict[str, list[str]], list[str | dict], list[str | dict]]:
     page_paths: dict[str, list[str]]
     page_links: list[str | dict]
@@ -281,11 +282,11 @@ def install_compile_npm_packages(
         with open(cache_path, 'r') as f:
             cached_npm_packages = json.load(f)
 
-        if cached_npm_packages['npm_packages'] == npm_packages:
+        if cached_npm_packages['npm_packages'] == npm_packages and not npm_post_bundle:
             page_paths = cached_npm_packages['page_paths']
             page_links = cached_npm_packages['page_links']
             page_scripts = cached_npm_packages['page_scripts']
-            # print('loaded npm cache', cache_path)
+            print('loaded npm cache', cache_path)
             return page_paths, page_links, page_scripts
 
     page_paths = {}
@@ -294,9 +295,11 @@ def install_compile_npm_packages(
     dest_paths: list[str] = []
 
     with TemporaryDirectory(delete=False) as build_dir:
-        # print(f'{build_dir=}')
+        print(f'{build_dir=}')
+        ignore = shutil.ignore_patterns('.cache', '__npm__', '__app__')
+        shutil.copytree(os.getcwd(), build_dir, ignore=ignore, dirs_exist_ok=True)
 
-        p = npm(
+        p = npm( # type: ignore
             ['init', '-y'],
             cwd=build_dir,
             stdout=PIPE,
@@ -324,6 +327,20 @@ def install_compile_npm_packages(
             page_paths[pkg_name] = paths
             dest_paths.extend(paths)
             t.update(1)
+
+        for cmd in npm_post_bundle:
+            # print(os.getcwd())
+            # print('cmd:', cmd)
+
+            p = npx( # type: ignore
+                cmd,
+                cwd=build_dir,
+                stdout=PIPE,
+                stderr=PIPE,
+                return_completed_process=True,
+            )
+
+            assert p.returncode == 0
 
     # print(f'{dest_paths=}')
 

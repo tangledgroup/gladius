@@ -26,6 +26,7 @@ def create_app(
     links: list[str | dict]=[],
     scripts: list[str | dict]=[],
     npm_packages: dict[str, Union[dict[str, Any], list[str]]]={},
+    npm_post_bundle: list[list[str]]=[],
     module_map: Optional[dict[str, str]]=None,
     ready: Optional[ModuleType | Callable]=None,
     app_init_args: dict | None=None,
@@ -51,10 +52,22 @@ def create_app(
         },
     }
 
+    root_app_dir: str = os.path.join(os.getcwd(), static_path, '__app__')
+    # print(f'{root_app_dir=}')
+
+    # remove "__app__" directory, and copy with new content
+    shutil.rmtree(root_app_dir, ignore_errors=True)
+    os.makedirs(root_app_dir, exist_ok=True)
+
     root_npm_dir: str = os.path.join(os.getcwd(), static_path, '__npm__')
     # print(f'{root_npm_dir=}')
 
-    npm_paths, npm_links, npm_scripts = install_compile_npm_packages(root_npm_dir, npm_packages)
+    npm_paths, npm_links, npm_scripts = install_compile_npm_packages(
+        root_npm_dir,
+        npm_packages,
+        npm_post_bundle,
+    )
+
     page_links.extend(npm_links)
     page_scripts.extend(npm_scripts)
 
@@ -111,13 +124,6 @@ def create_app(
     with page['head']:
         g.script(src=os.path.join('/', 'static', '__npm__', 'brython', 'brython.js'))
         g.script(src=os.path.join('/', 'static', '__npm__', 'brython', 'brython_stdlib.js'))
-
-    root_app_dir: str = os.path.join(os.getcwd(), static_path, '__app__')
-    # print(f'{root_app_dir=}')
-
-    # remove "__app__" directory, and copy with new content
-    shutil.rmtree(root_app_dir, ignore_errors=True)
-    os.makedirs(root_app_dir, exist_ok=True)
 
     # copy gladius client-side libs
     src_path: str = client.__file__
