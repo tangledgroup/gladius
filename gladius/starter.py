@@ -9,12 +9,11 @@ from typing import Any, Optional, Union, Callable
 
 from aiohttp import web
 
-from .. import gladius
-from ..element import Element
-from ..gladius import Gladius
-from ..aiohttp import aiohttp_middlewares
-from ..util import make_page, install_compile_npm_packages
-from ..imports import capture_imports
+from . import gladius
+from .element import Element
+from .gladius import Gladius
+from .aiohttp import aiohttp_middlewares
+from .util import make_page, install_compile_npm_packages
 
 
 def create_app(
