@@ -5,7 +5,6 @@ NProgress = window.nprogress.default
 Alpine = window.alpinejs.Alpine
 PineconeRouter = window.pinecone_router.default
 
-
 window.Alpine = Alpine
 
 

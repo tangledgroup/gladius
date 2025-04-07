@@ -159,7 +159,7 @@ class Text(Element):
         return len(self.text_content)
 
 
-    def __getitem__(self, index: int) -> str:
+    def __getitem__(self, index: int) -> str: # ???
         return self.text_content[index]
 
 
@@ -182,8 +182,6 @@ class VoidElement(Element):
         text.append('<')
         text.append(self.__class__.__name__)
 
-        # for k, v in self.attrs.items():
-        #     text.append(f' {self.render_attr_key(k)}={self.render_attr_value(v)}')
         if self.attrs:
             text.append(' ')
             text.append(self.render_attrs())
@@ -207,8 +205,6 @@ class VoidElement(Element):
         text.append('<')
         text.append(self.__class__.__name__)
 
-        # for k, v in self.attrs.items():
-        #     text.append(f' {self.render_attr_key(k)}={self.render_attr_value(v)}')
         if self.attrs:
             text.append(' ')
             text.append(self.render_attrs())
@@ -231,19 +227,19 @@ class ContainerElement(Element):
         if text_content:
             if isinstance(text_content, str):
                 text_node: Element = self.ctx.text(text_content, inline=True) # type: ignore
-            elif self.tag == 'script' and (isinstance(text_content, Callable) or isinstance(text_content, ModuleType)):
-                source_content: str = '\n' + get_function_body(text_content)
+            elif isinstance(text_content, (Callable, ModuleType)) and self.tag == 'script':
+                if not ('type' in kwargs and kwargs['type'] == 'text/python'):
+                    raise ValueError('Expected `type="text/python"`')
+
+                source_content: str
+
+                if isinstance(text_content, Callable):
+                    source_content = '\nimport sys; sys.path = ["static/__app__"]\n' + get_function_body(text_content)
+                elif isinstance(text_content, ModuleType):
+                    source_content = f'\nimport sys; sys.path = ["static/__app__"]\nimport {text_content.__name__}\n'
+
                 # print(source_content)
-
-                if 'type' in kwargs:
-                    t = kwargs['type']
-
-                    if t == 'text/python':
-                        # brython
-                        source_content = f'\nimport sys; sys.path = ["static/__app__"]\nimport {text_content.__name__}\n'
-
                 text_node: Element = self.ctx.text(source_content, inline=True) # type: ignore
-                # self.attrs['type'] = 'mpy'
             else:
                 raise ValueError(text_content)
 

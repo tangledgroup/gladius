@@ -25,12 +25,10 @@ def create_app(
     links: list[str | dict]=[],
     scripts: list[str | dict]=[],
     npm_packages: dict[str, Union[dict[str, Any], list[str]]]={},
-    # ready: Optional[ModuleType | Callable | str]=None,
     module_map: Optional[dict[str, str]]=None,
-    ready: Optional[ModuleType]=None,
+    ready: Optional[ModuleType | Callable]=None,
     app_init_args: dict | None=None,
 ) -> tuple[Gladius, Element, web.Application]:
-    assert isinstance(ready, ModuleType)
     g = Gladius()
 
     if not app_init_args:
@@ -114,7 +112,7 @@ def create_app(
         g.script(src=os.path.join('/', 'static', '__npm__', 'brython', 'brython_stdlib.js'))
 
     root_app_dir: str = os.path.join(os.getcwd(), static_path, '__app__')
-    print(f'{root_app_dir=}')
+    # print(f'{root_app_dir=}')
 
     # remove "__app__" directory, and copy with new content
     shutil.rmtree(root_app_dir, ignore_errors=True)
@@ -122,49 +120,32 @@ def create_app(
 
     # if ready is path to file, copy it into __app__, and include it in config
     if isinstance(ready, str) and os.path.exists(ready):
-        module_app_path: str = os.path.join(static_path, root_app_dir, ready)
-
         # make sure parent directory of dest file exists
+        module_app_path: str = os.path.join(static_path, root_app_dir, ready)
         d, _ = os.path.split(module_app_path)
         os.makedirs(d, exist_ok=True)
-
-        # print(f'copy: {ready=} => {module_app_path=}')
         shutil.copy(ready, module_app_path)
 
     ignored_modules_names: set[str] = set(sys.builtin_module_names) | set(sys.stdlib_module_names) | {'browser', 'javascript'}
 
-    for k, v in module_map.items():
-        # print(f'module_map: {k=}, {v=}')
-        skip_module = False
+    if module_map:
+        for k, v in module_map.items():
+            skip_module = False
 
-        # for m in ['browser', 'javascript']:
-        #     if k.startswith(m):
-        #         skip_module = True
-        #         break
+            for m in ignored_modules_names:
+                if k.startswith(m):
+                    skip_module = True
+                    break
 
-        # for m in sys.stdlib_module_names:
-        #     if k.startswith(m):
-        #         skip_module = True
-        #         break
+            if skip_module:
+                continue
 
-        for m in ignored_modules_names:
-            if k.startswith(m):
-                skip_module = True
-                break
+            src_path: str = os.path.relpath(v)
+            dest_path: str = os.path.join(static_path, root_app_dir, src_path)
 
-        if skip_module:
-            continue
-
-        src_path: str = os.path.relpath(v)
-        dest_path: str = os.path.join(static_path, root_app_dir, src_path)
-
-        # module_app_path: str = os.path.join(static_path, root_app_dir, v)
-        # module_app_dirpath, _ = os.path.split(module_app_path)
-        # os.makedirs(module_app_dirpath, exist_ok=True)
-        # shutil.copy(v, module_app_path)
-        dest_dirpath, _ = os.path.split(dest_path)
-        os.makedirs(dest_dirpath, exist_ok=True)
-        shutil.copy(src_path, dest_path)
+            dest_dirpath, _ = os.path.split(dest_path)
+            os.makedirs(dest_dirpath, exist_ok=True)
+            shutil.copy(src_path, dest_path)
 
     for k, v in npm_paths.items():
         # print(f'npm_paths {k=}: {v=}')
@@ -188,15 +169,6 @@ def create_app(
         for k, v in bpy_config_js_modules_main_content.items():
             # print(f'{k=}: {v=}')
 
-            # if os.path.splitext(k)[1] in ('.js', '.mjs'):
-            #     g.script(f'''
-            #         import * as {v} from '/{k}';
-            #         window.{v} = {v};
-            #     ''', type='module')
-            # elif os.path.splitext(k)[1] == '.css':
-            #     g.link(rel='stylesheet', href=f'/{k}')
-            # else:
-            #     g.link(href=f'/{k}')
             if os.path.splitext(k)[1] in ('.js', '.mjs'):
                 g.script(f"import * as {v} from '/{k}'; window.{v} = {v};", type='module')
 
@@ -206,7 +178,6 @@ def create_app(
             ready_module_name, _ = os.path.splitext(ready)
 
             g.script(
-                # f'\nimport sys; sys.path = ["static/__app__"]\nfrom {ready_module_name} import *\n',
                 f'\nimport sys; sys.path = ["static/__app__"]\nimport {ready_module_name}\n',
                 type='text/python',
                 defer=None,

@@ -1,5 +1,6 @@
 from browser import window, document, bind # type: ignore
 from client_utils import f0
+
 NProgress = window.nprogress.default
 
 btn = document.getElementById('hello-button') # get server-created button

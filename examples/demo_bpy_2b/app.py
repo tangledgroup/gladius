@@ -1,9 +1,10 @@
 import os
 
-from aiohttp import web
-from gladius.starter import create_aiohttp_app
+from gladius import create_app, run_app, capture_imports
 
-import client_app
+with capture_imports() as module_map:
+    import client_app
+
 
 # required npm packages
 npm_packages = {
@@ -15,9 +16,9 @@ npm_packages = {
 }
 
 # create simple aiohttp web server
-g, page, app = create_aiohttp_app(
-    npm_packages=npm_packages,
-    use_brython=True,
+g, page, app = create_app(
+    npm_packages=npm_packages, # type: ignore
+    module_map=module_map,
     ready=client_app,
 )
 
@@ -39,4 +40,4 @@ with page:
 
 # start application
 if __name__ == '__main__':
-    web.run_app(app, host='0.0.0.0', port=5000)
+    run_app(app, host='0.0.0.0', port=5000)
