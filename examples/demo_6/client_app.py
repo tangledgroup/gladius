@@ -1,6 +1,5 @@
 # to learn more about Alpine visit https://alpinejs.dev/
-from browser import window, document # type: ignore
-from javascript import this, JSObject # type: ignore
+from gladius import window, document, JSObject, export # type: ignore
 
 NProgress = window.nprogress.default
 Alpine = window.alpinejs.Alpine
@@ -8,15 +7,6 @@ PineconeRouter = window.pinecone_router.default
 Handlebars = window.handlebars.default
 
 window.Alpine = Alpine
-
-
-def export(func):
-    setattr(window, func.__name__, func)
-
-    def wraps(*args, **kwargs):
-        return func(*args, **kwargs)
-
-    return wraps
 
 
 def alpine_init(event):

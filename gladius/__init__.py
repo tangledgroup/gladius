@@ -13,3 +13,8 @@ from .gladius import * # noqa
 from .element import * # noqa
 from .imports import * # noqa
 from .starter import * # noqa
+
+# fake objects, used on client-side only
+from .client import window, document, bind # type: ignore # noqa
+from .client import JSObject, this, Date, JSON, Math, NULL, Number, RegExp, String, UNDEFINED # type: ignore # noqa
+from .client import export # type: ignore # noqa

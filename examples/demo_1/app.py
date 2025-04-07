@@ -12,7 +12,7 @@ npm_packages = {
 
 # client-side click handler
 def ready():
-    from browser import window, document, bind # type: ignore
+    from gladius import window, document, bind # type: ignore
     from client_utils import f0
 
     NProgress = window.nprogress.default

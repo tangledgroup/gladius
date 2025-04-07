@@ -14,6 +14,7 @@ from .element import Element
 from .gladius import Gladius
 from .aiohttp import aiohttp_middlewares
 from .util import make_page, install_compile_npm_packages
+from . import client
 
 
 def create_app(
@@ -117,6 +118,11 @@ def create_app(
     # remove "__app__" directory, and copy with new content
     shutil.rmtree(root_app_dir, ignore_errors=True)
     os.makedirs(root_app_dir, exist_ok=True)
+
+    # copy gladius client-side libs
+    src_path: str = client.__file__
+    dest_path: str = os.path.join(static_path, root_app_dir, 'gladius.py')
+    shutil.copy(src_path, dest_path)
 
     # if ready is path to file, copy it into __app__, and include it in config
     if isinstance(ready, str) and os.path.exists(ready):
