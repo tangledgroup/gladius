@@ -1,4 +1,7 @@
-from gladius import create_app, run_app
+from gladius import create_app, run_app, capture_imports
+
+with capture_imports() as module_map:
+    from client_utils import f0
 
 
 # required npm packages
@@ -10,6 +13,7 @@ npm_packages = {
 # client-side click handler
 def ready():
     from browser import window, document, bind # type: ignore
+    from client_utils import f0
 
     NProgress = window.nprogress.default
 
@@ -23,12 +27,14 @@ def ready():
         NProgress.start()
         clicked += 1 # type: ignore
         btn.innerText = f'Clicked {clicked} time{"s" if clicked !=1 else ""}!'
+        print(f0(clicked, clicked))
         NProgress.done()
 
 
 # create simple aiohttp web server
 g, page, app = create_app(
     npm_packages=npm_packages, # type: ignore
+    module_map=module_map,
     ready=ready,
     app_init_args={
         'client_max_size': 1024 ** 3,
