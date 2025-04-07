@@ -240,7 +240,7 @@ class ContainerElement(Element):
 
                     if t == 'text/python':
                         # brython
-                        source_content = f'\nimport sys; sys.path = ["static/__app__"]\n{source_content}'
+                        source_content = f'\nimport sys; sys.path = ["static/__app__"]\nimport {text_content.__name__}\n'
 
                 text_node: Element = self.ctx.text(source_content, inline=True) # type: ignore
                 # self.attrs['type'] = 'mpy'

@@ -13,16 +13,15 @@ from typing import Any, Optional, Union, Callable
 
 from aiohttp import web
 
-from . import gladius
-from .element import Element
-from .gladius import Gladius
-from .aiohttp import aiohttp_middlewares
-from .util import make_page, install_compile_npm_packages
-from .imports import generate_module_map
+from .. import gladius
+from ..element import Element
+from ..gladius import Gladius
+from ..aiohttp import aiohttp_middlewares
+from ..util import make_page, install_compile_npm_packages
+# from ..imports import generate_module_map
 
 
 def create_aiohttp_app(
-    root_dir: Optional[str]=None,
     lang: str='en',
     title: str='Gladius',
     description: str='Gladius',
@@ -38,6 +37,7 @@ def create_aiohttp_app(
     app_init_args: dict | None=None,
 ) -> tuple[Gladius, Element, web.Application]:
     assert use_brython or use_pyscript
+    assert isinstance(ready, str)
     g = Gladius()
 
     if not app_init_args:
@@ -160,6 +160,12 @@ def create_aiohttp_app(
             # if ready is path to file, copy it into __app__, and include it in config
             if isinstance(ready, str) and os.path.exists(ready):
                 module_app_path: str = os.path.join(static_path, root_app_dir, ready)
+
+                # make sure parent directory of dest file exists
+                d, _ = os.path.split(module_app_path)
+                os.makedirs(d, exist_ok=True)
+
+                print(f'copy: {ready=} => {module_app_path=}')
                 shutil.copy(ready, module_app_path)
 
             for k, v in module_map.items():

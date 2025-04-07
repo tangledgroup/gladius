@@ -12,3 +12,7 @@ sys.modules['pyscript'] = mock_module
 
 from .gladius import * # noqa
 from .element import * # noqa
+from .imports import * # noqa
+from .starter.brython_aiohttp import * # noqa
+
+from .aiohttp import run_app # noqa
