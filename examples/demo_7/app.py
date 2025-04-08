@@ -33,7 +33,7 @@ def ready():
 
 # create simple aiohttp web server
 g, page, app = create_app(
-    npm_packages=npm_packages, # type: ignore
+    npm_packages=npm_packages,
     npm_post_bundle=[
         ['@tailwindcss/cli', '-i', 'style.css', '-o', os.path.join(os.getcwd(), 'static/__app__/style.css')],
     ],

@@ -1,10 +1,16 @@
+import os
+from random import randint
 from gladius import create_app, run_app
 
 
 # required npm packages
 npm_packages = {
-    '@picocss/pico': ['css/pico.css'],
+    'tailwindcss@4.1.3': [],
+    '@tailwindcss/cli': [],
+    'daisyui': [],
     'nprogress': ['nprogress.js', 'nprogress.css'],
+    'lodash@4.17.21': ['index.js'],
+    # 'lodash@3.10.1': ['index.js'],
 }
 
 # client-side click handler
@@ -29,6 +35,9 @@ def ready():
 # create simple aiohttp web server
 g, page, app = create_app(
     npm_packages=npm_packages,
+    npm_post_bundle=[
+        ['@tailwindcss/cli', '-i', 'style.css', '-o', os.path.join(os.getcwd(), 'static/__app__/style.css')],
+    ],
     ready=ready,
     app_init_args={
         'client_max_size': 1024 ** 3,
@@ -36,11 +45,13 @@ g, page, app = create_app(
 )
 
 # server-side structure
+with page['head']:
+    g.link(rel='stylesheet', href=f'static/__app__/style.css?v={randint(0, 2 ** 32)}')
+
 with page:
     with g.body():
-        with g.main(class_='container'):
-            g.h1('Gladius Demo')
-            g.button('Click me!', id='hello-button')    # create button on server
+        g.h1('Gladius Demo')
+        g.button('Click me!', id='hello-button', class_='btn btn-primary') # create button on server
 
 # start application
 if __name__ == '__main__':

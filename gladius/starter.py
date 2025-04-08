@@ -5,7 +5,7 @@ import sys
 import shutil
 from copy import deepcopy
 from types import ModuleType
-from typing import Any, Optional, Union, Callable
+from typing import Any, Optional, Union, Callable, Mapping
 
 from aiohttp import web
 
@@ -25,12 +25,13 @@ def create_app(
     favicon: str | dict='img/favicon.png',
     links: list[str | dict]=[],
     scripts: list[str | dict]=[],
-    npm_packages: dict[str, Union[dict[str, Any], list[str]]]={},
+    npm_packages: Mapping[str, Union[list[str], dict[str, Any]]]={},
     npm_post_bundle: list[list[str]]=[],
     module_map: Optional[dict[str, str]]=None,
     ready: Optional[ModuleType | Callable]=None,
     app_init_args: dict | None=None,
 ) -> tuple[Gladius, Element, web.Application]:
+    # assert isinstance(npm_packages, list) or isinstance(npm_packages, dict)
     g = Gladius()
 
     if not app_init_args:
@@ -44,8 +45,7 @@ def create_app(
     npm_packages = deepcopy(npm_packages)
 
     # NOTE: https://github.com/tangledgroup/gladius/commit/b019ddea7fbc41074bdd7da921cdbcf612f8da13
-    npm_packages['brython'] = {
-        'version': '3.13.1',
+    npm_packages['brython'] = { # type: ignore
         'copy': {
             'brython.js': 'brython/',
             'brython_stdlib.js': 'brython/',
@@ -64,7 +64,7 @@ def create_app(
 
     npm_paths, npm_links, npm_scripts = install_compile_npm_packages(
         root_npm_dir,
-        npm_packages,
+        npm_packages, # type: ignore
         npm_post_bundle,
     )
 

@@ -17,7 +17,7 @@ npm_packages = {
 
 # create simple aiohttp web server
 g, page, app = create_app(
-    npm_packages=npm_packages, # type: ignore
+    npm_packages=npm_packages,
     module_map=module_map,
     ready=client_app,
 )

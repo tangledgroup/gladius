@@ -1,7 +1,7 @@
 from gladius import create_app, run_app, capture_imports
 
 with capture_imports() as module_map:
-    from client_utils import f0
+    from client_utils import f0 # noqa
 
 
 # required npm packages
@@ -33,7 +33,7 @@ def ready():
 
 # create simple aiohttp web server
 g, page, app = create_app(
-    npm_packages=npm_packages, # type: ignore
+    npm_packages=npm_packages,
     module_map=module_map,
     ready=ready,
     app_init_args={
