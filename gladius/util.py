@@ -8,8 +8,9 @@ __all__ = [
 import os
 import json
 import shutil
+import hashlib
 from subprocess import PIPE
-from typing import Any, Union
+from typing import Any, Union, Optional
 from tempfile import TemporaryDirectory
 
 from tqdm import tqdm
@@ -73,7 +74,7 @@ def make_page(
 #
 # npm packages
 #
-def install_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info: Union[str, dict[str, Any], list[str]]):
+def install_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info: Union[str, dict[str, Any], list[str]], workspace_name: Optional[str]):
     if isinstance(pkg_info, str):
         pkg_ver = pkg_info
 
@@ -98,8 +99,23 @@ def install_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_inf
     else:
         raise ValueError(pkg_info)
 
+    if workspace_name:
+        cmd = [
+            '--workspace',
+            workspace_name,
+            'install',
+            '--save',
+            pkg_name_ver,
+        ]
+    else:
+        cmd = [
+            'install',
+            '--save',
+            pkg_name_ver,
+        ]
+
     p = npm( # type: ignore
-        ['install', '--save', pkg_name_ver],
+        cmd,
         cwd=build_dir,
         stdout=PIPE,
         stderr=PIPE,
@@ -117,7 +133,7 @@ def install_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_inf
     # print(f'install_npm_package {p=}')
 
 
-def copy_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info: Union[dict, list], pkg_copy: Union[dict, list]):
+def copy_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info: Union[dict, list], pkg_copy: Union[dict, list], workspace_name: str):
     # print(f'{pkg_copy=}')
     dest_paths: list[str] = []
 
@@ -127,7 +143,11 @@ def copy_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info: 
 
     if isinstance(pkg_copy, dict):
         for k, v in pkg_copy.items():
-            src_path = os.path.join(build_dir, 'node_modules', pkg_name, k)
+            src_path = os.path.join(build_dir, 'node_modules', workspace_name, pkg_name, k)
+
+            if not os.path.exists(src_path):
+                src_path = os.path.join(build_dir, 'node_modules', pkg_name, k)
+
             dest_path = os.path.join(static_path, v)
 
             if not (os.path.exists(src_path) and os.path.isfile(src_path)):
@@ -154,7 +174,7 @@ def copy_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info: 
     return dest_paths
 
 
-def bundle_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info: Union[dict[str, Any], list[str]], pkg_bundle: Union[dict, list]):
+def bundle_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info: Union[dict[str, Any], list[str]], pkg_bundle: Union[dict, list], workspace_name: str):
     # print(f'{pkg_bundle=}')
     dest_paths: list[str] = []
 
@@ -164,7 +184,11 @@ def bundle_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info
 
     if isinstance(pkg_bundle, dict):
         for k, v in pkg_bundle.items():
-            src_path = os.path.join(build_dir, 'node_modules', pkg_name, k)
+            src_path = os.path.join(build_dir, 'node_modules', workspace_name, pkg_name, k)
+
+            if not os.path.exists(src_path):
+                src_path = os.path.join(build_dir, 'node_modules', pkg_name, k)
+
             dest_path = os.path.join(static_path, v)
 
             if not (os.path.exists(src_path) and os.path.isfile(src_path)):
@@ -191,7 +215,7 @@ def bundle_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info
             if ext in ('.wasm',):
                 # copy instead of bundle
                 pkg_copy = {src_path: dest_path}
-                copy_npm_package(static_path, build_dir, pkg_name, pkg_info, pkg_copy)
+                copy_npm_package(static_path, build_dir, pkg_name, pkg_info, pkg_copy, workspace_name)
             else:
                 assert isinstance(pkg_info, dict)
 
@@ -228,7 +252,7 @@ def bundle_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info
                 else:
                     # copy if bundle failed
                     pkg_copy = {src_path: dest_path}
-                    paths = copy_npm_package(static_path, build_dir, pkg_name, pkg_info, pkg_copy)
+                    paths = copy_npm_package(static_path, build_dir, pkg_name, pkg_info, pkg_copy, workspace_name)
                     paths = [os.path.relpath(dest_path) for dest_path in paths]
                     dest_paths.extend(paths)
 
@@ -239,7 +263,7 @@ def bundle_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info
     return dest_paths
 
 
-def compile_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info: Union[dict[str, Any], list[str]]) -> list[str]:
+def compile_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info: Union[dict[str, Any], list[str]], workspace_name: str) -> list[str]:
     # print(f'{pkg_info=}')
     dest_paths: list[str] = []
 
@@ -253,11 +277,11 @@ def compile_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_inf
 
     if isinstance(pkg_info, dict):
         if pkg_copy := pkg_info.get('copy'):
-            paths = copy_npm_package(static_path, build_dir, pkg_name, pkg_info, pkg_copy)
+            paths = copy_npm_package(static_path, build_dir, pkg_name, pkg_info, pkg_copy, workspace_name)
             dest_paths.extend(paths)
 
         if pkg_bundle := pkg_info.get('bundle'):
-            paths = bundle_npm_package(static_path, build_dir, pkg_name, pkg_info, pkg_bundle)
+            paths = bundle_npm_package(static_path, build_dir, pkg_name, pkg_info, pkg_bundle, workspace_name)
             dest_paths.extend(paths)
 
     return dest_paths
@@ -268,9 +292,11 @@ def install_compile_npm_packages(
     npm_packages: dict[str, Union[dict[str, Any], list[str]]]={},
     npm_post_bundle: list[list[str]]=[],
 ) -> tuple[dict[str, list[str]], list[str | dict], list[str | dict]]:
-    page_paths: dict[str, list[str]]
-    page_links: list[str | dict]
-    page_scripts: list[str | dict]
+    build_dir: Optional[str] = None
+    page_paths: dict[str, list[str]] = {}
+    page_links: list[str | dict] = []
+    page_scripts: list[str | dict] = []
+    dest_paths: list[str] = []
 
     # try to load npm cache
     cache_dir = '.cache'
@@ -287,18 +313,21 @@ def install_compile_npm_packages(
             page_links = cached_npm_packages['page_links']
             page_scripts = cached_npm_packages['page_scripts']
             print('loaded npm cache', cache_path)
-            return page_paths, page_links, page_scripts
+            # return page_paths, page_links, page_scripts
 
-    page_paths = {}
-    page_links = []
-    page_scripts = []
-    dest_paths: list[str] = []
+        build_dir = cached_npm_packages['build_dir']
 
-    with TemporaryDirectory(delete=False) as build_dir:
-        print(f'{build_dir=}')
-        ignore = shutil.ignore_patterns('.cache', '__npm__', '__app__')
-        shutil.copytree(os.getcwd(), build_dir, ignore=ignore, dirs_exist_ok=True)
+    if build_dir and os.path.exists(build_dir):
+        pass
+    else:
+        td = TemporaryDirectory(prefix='gladius-', delete=False)
+        build_dir = td.name
 
+    print(f'{build_dir=}')
+    ignore = shutil.ignore_patterns('.cache', '__npm__', '__app__')
+    shutil.copytree(os.getcwd(), build_dir, ignore=ignore, dirs_exist_ok=True)
+
+    if not os.path.exists(os.path.join(build_dir, 'package.json')):
         p = npm( # type: ignore
             ['init', '-y'],
             cwd=build_dir,
@@ -307,31 +336,80 @@ def install_compile_npm_packages(
             return_completed_process=True,
         )
 
+        if p.returncode != 0:
+            print('install_npm_package:', p)
+            print('stdout:')
+            print(p.stdout)
+            print('stderr:')
+            print(p.stderr)
+
         assert p.returncode == 0
         # print(f'create_aiohttp_app {p=}')
 
-        total = 1 + len(npm_packages) + len(npm_packages)
-        t = tqdm(total=total)
+    workspace_name: str = f'workspace-{hash_npm_packages(npm_packages)}'
+    print(f'{workspace_name=}')
+
+    total = 0
+
+    if not os.path.exists(os.path.join(build_dir, 'node_modules', 'esbuild')):
+        total += 1
+
+    if not os.path.exists(os.path.join(build_dir, workspace_name)):
+        total += len(npm_packages)
+
+    total += len(npm_packages) # compile
+
+    t = tqdm(total=total)
+
+    if not os.path.exists(os.path.join(build_dir, 'node_modules', 'esbuild')):
         t.set_description('Install esbuild')
-        install_npm_package(static_path, build_dir, 'esbuild', {'version': '*'})
-        t.update(1)
+        install_npm_package(static_path, build_dir, 'esbuild', {'version': '*'}, None)
+
+    t.update(1)
+
+    if not os.path.exists(os.path.join(build_dir, workspace_name)):
+        p = npm( # type: ignore
+            ['--workspace', workspace_name, 'init', '-y'],
+            cwd=build_dir,
+            stdout=PIPE,
+            stderr=PIPE,
+            return_completed_process=True,
+        )
+
+        if p.returncode != 0:
+            print('install_npm_package:', p)
+            print('stdout:')
+            print(p.stdout)
+            print('stderr:')
+            print(p.stderr)
+
+        assert p.returncode == 0
 
         for pkg_name, pkg_info in npm_packages.items():
             t.set_description(f'Install {pkg_name}')
-            install_npm_package(static_path, build_dir, pkg_name, pkg_info)
+            install_npm_package(static_path, build_dir, pkg_name, pkg_info, workspace_name)
             t.update(1)
 
-        for pkg_name, pkg_info in npm_packages.items():
-            t.set_description(f'Compile {pkg_name}')
-            paths = compile_npm_package(static_path, build_dir, pkg_name, pkg_info)
-            page_paths[pkg_name] = paths
-            dest_paths.extend(paths)
-            t.update(1)
+    for pkg_name, pkg_info in npm_packages.items():
+        t.set_description(f'Compile {pkg_name}')
+        paths = compile_npm_package(static_path, build_dir, pkg_name, pkg_info, workspace_name)
+        page_paths[pkg_name] = paths
+        dest_paths.extend(paths)
+        t.update(1)
 
-        for cmd in npm_post_bundle:
-            # print(os.getcwd())
-            # print('cmd:', cmd)
+    for cmd in npm_post_bundle:
+        '''
+        p = npx( # type: ignore
+            ['--workspace', workspace_name, *cmd],
+            cwd=build_dir,
+            stdout=PIPE,
+            stderr=PIPE,
+            return_completed_process=True,
+        )
 
+        print('!!! 1', p.returncode)
+
+        if p.returncode != 0:
             p = npx( # type: ignore
                 cmd,
                 cwd=build_dir,
@@ -340,7 +418,33 @@ def install_compile_npm_packages(
                 return_completed_process=True,
             )
 
+            print('!!! 2')
+
+            if p.returncode != 0:
+                print('install_npm_package:', p)
+                print('stdout:')
+                print(p.stdout)
+                print('stderr:')
+                print(p.stderr)
+
             assert p.returncode == 0
+        '''
+        p = npx( # type: ignore
+            cmd,
+            cwd=build_dir,
+            stdout=PIPE,
+            stderr=PIPE,
+            return_completed_process=True,
+        )
+
+        if p.returncode != 0:
+            print('install_npm_package:', p)
+            print('stdout:')
+            print(p.stdout)
+            print('stderr:')
+            print(p.stderr)
+
+        assert p.returncode == 0
 
     # print(f'{dest_paths=}')
 
@@ -362,6 +466,7 @@ def install_compile_npm_packages(
 
     with open(cache_path, 'w') as f:
         cached_npm_packages = {
+            'build_dir': build_dir,
             'npm_packages': npm_packages,
             'page_paths': page_paths,
             'page_links': page_links,
@@ -372,3 +477,11 @@ def install_compile_npm_packages(
         print('saved npm cache', cache_path)
 
     return page_paths, page_links, page_scripts
+
+
+def hash_npm_packages(npm_packages: dict[str, Any]) -> str:
+    m = hashlib.sha256()
+    m.update(json.dumps(npm_packages).encode())
+    h = m.hexdigest()
+    h = h[:7] # inspired by git which uses first 7 characters
+    return h

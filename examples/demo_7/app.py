@@ -9,6 +9,7 @@ npm_packages = {
     '@tailwindcss/cli': [],
     'daisyui': [],
     'nprogress': ['nprogress.js', 'nprogress.css'],
+    # 'lodash': ['index.js'],
 }
 
 # client-side click handler
