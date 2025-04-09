@@ -12,6 +12,7 @@ from aiohttp import web
 from . import gladius
 from .element import Element
 from .gladius import Gladius
+from .imports import local_import_tracker
 from .aiohttp import aiohttp_middlewares
 from .util import make_page, install_compile_npm_packages
 from . import client
@@ -27,7 +28,7 @@ def create_app(
     scripts: list[str | dict]=[],
     npm_packages: Mapping[str, Union[list[str], dict[str, Any]]]={},
     npm_post_bundle: list[list[str]]=[],
-    module_map: Optional[dict[str, str]]=None,
+    # module_map: Optional[dict[str, str]]=None,
     ready: Optional[ModuleType | Callable]=None,
     app_init_args: dict | None=None,
 ) -> tuple[Gladius, Element, web.Application]:
@@ -144,6 +145,10 @@ def create_app(
         {'browser', 'javascript'}
     )
 
+    '''
+    if not module_map and ready and hasattr(ready, 'module_map'):
+        module_map = getattr(ready, 'module_map')
+
     if module_map:
         for k, v in module_map.items():
             skip_module = False
@@ -162,6 +167,32 @@ def create_app(
             dest_dirpath, _ = os.path.split(dest_path)
             os.makedirs(dest_dirpath, exist_ok=True)
             shutil.copy(src_path, dest_path)
+    '''
+    module_map = {
+        k: v
+        for k, v in local_import_tracker.local_imports.items()
+        if not os.path.isdir(v)
+    }
+
+    print(f'{module_map=}')
+
+    for k, v in module_map.items():
+        skip_module = False
+
+        for m in ignored_modules_names:
+            if k.startswith(m):
+                skip_module = True
+                break
+
+        if skip_module:
+            continue
+
+        src_path: str = os.path.relpath(v)
+        dest_path: str = os.path.join(static_path, root_app_dir, src_path)
+
+        dest_dirpath, _ = os.path.split(dest_path)
+        os.makedirs(dest_dirpath, exist_ok=True)
+        shutil.copy(src_path, dest_path)
 
     for k, v in npm_paths.items():
         # print(f'npm_paths {k=}: {v=}')
@@ -199,6 +230,6 @@ def create_app(
                 defer=None,
             )
         else:
-            raise ValueError(ready)
+            pass
 
     return g, page, app
