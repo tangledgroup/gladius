@@ -1,0 +1,9 @@
+import { Message } from './Message';
+
+export const Messages = (props) => {
+  return (
+    <template x-for="m in $store.messages.items">
+      <Message />
+    </template>
+  );
+};

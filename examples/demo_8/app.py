@@ -48,10 +48,9 @@ g, page, app = create_app(
 with page['head']:
     g.link(rel='stylesheet', href=f'static/__app__/style.css?v={randint(0, 2 ** 32)}')
 
-with page:
-    with g.body():
-        g.h1('Gladius Demo')
-        g.button('Click me!', id='hello-button', class_='btn btn-primary') # create button on server
+with page['body']:
+    g.h1('Gladius Demo')
+    g.button('Click me!', id='hello-button', class_='btn btn-primary') # create button on server
 
 # start application
 if __name__ == '__main__':

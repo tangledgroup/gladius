@@ -20,8 +20,8 @@ g, page, app = create_app(
 )
 
 # server-side structure
-with page:
-    with g.body(x_data=None):
+with page['body']:
+    with g.div(x_data=None):
         with g.main(class_='container'):
             g.h1('Gladius Demo - Messages')
 

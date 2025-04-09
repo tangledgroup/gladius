@@ -68,6 +68,9 @@ def make_page(
                 else:
                     raise ValueError(n)
 
+        with g.body() as body: # noqa
+            pass
+
     return el
 
 
@@ -383,6 +386,8 @@ def install_compile_npm_packages(
         t.update(1)
 
     for cmd in npm_post_bundle:
+        print(f'{build_dir=} {cmd=}')
+
         p = npx( # type: ignore
             cmd,
             cwd=build_dir,

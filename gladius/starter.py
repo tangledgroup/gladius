@@ -138,7 +138,11 @@ def create_app(
         os.makedirs(d, exist_ok=True)
         shutil.copy(ready, module_app_path)
 
-    ignored_modules_names: set[str] = set(sys.builtin_module_names) | set(sys.stdlib_module_names) | {'browser', 'javascript'}
+    ignored_modules_names: set[str] = (
+        set(sys.builtin_module_names) |
+        set(sys.stdlib_module_names) |
+        {'browser', 'javascript'}
+    )
 
     if module_map:
         for k, v in module_map.items():
