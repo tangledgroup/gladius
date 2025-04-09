@@ -4,6 +4,7 @@ import os
 import sys
 import shutil
 from copy import deepcopy
+from random import randint
 from types import ModuleType
 from typing import Any, Optional, Union, Callable, Mapping
 
@@ -12,9 +13,17 @@ from aiohttp import web
 from . import gladius
 from .element import Element
 from .gladius import Gladius
-from .imports import local_import_tracker
+from .imports import (
+    JsModuleType,
+    TsModuleType,
+    JsxModuleType,
+    TsxModuleType,
+    # WasmModuleType,
+    # CssModuleType,
+    local_import_tracker,
+)
 from .aiohttp import aiohttp_middlewares
-from .util import make_page, install_compile_npm_packages
+from .util import make_page, install_compile_npm_packages, exec_npm_post_bundle, get_gladius_cache
 from . import client
 
 
@@ -28,7 +37,6 @@ def create_app(
     scripts: list[str | dict]=[],
     npm_packages: Mapping[str, Union[list[str], dict[str, Any]]]={},
     npm_post_bundle: list[list[str]]=[],
-    # module_map: Optional[dict[str, str]]=None,
     ready: Optional[ModuleType | Callable]=None,
     app_init_args: dict | None=None,
 ) -> tuple[Gladius, Element, web.Application]:
@@ -90,6 +98,7 @@ def create_app(
     )
 
     async def page_handler(request):
+        print('page_handler', request.path)
         return page.render()
 
     app.router.add_routes([
@@ -131,6 +140,7 @@ def create_app(
     dest_path: str = os.path.join(static_path, root_app_dir, 'gladius.py')
     shutil.copy(src_path, dest_path)
 
+    '''
     # if ready is path to file, copy it into __app__, and include it in config
     if isinstance(ready, str) and os.path.exists(ready):
         # make sure parent directory of dest file exists
@@ -138,6 +148,7 @@ def create_app(
         d, _ = os.path.split(module_app_path)
         os.makedirs(d, exist_ok=True)
         shutil.copy(ready, module_app_path)
+    '''
 
     ignored_modules_names: set[str] = (
         set(sys.builtin_module_names) |
@@ -145,36 +156,12 @@ def create_app(
         {'browser', 'javascript'}
     )
 
-    '''
-    if not module_map and ready and hasattr(ready, 'module_map'):
-        module_map = getattr(ready, 'module_map')
-
-    if module_map:
-        for k, v in module_map.items():
-            skip_module = False
-
-            for m in ignored_modules_names:
-                if k.startswith(m):
-                    skip_module = True
-                    break
-
-            if skip_module:
-                continue
-
-            src_path: str = os.path.relpath(v)
-            dest_path: str = os.path.join(static_path, root_app_dir, src_path)
-
-            dest_dirpath, _ = os.path.split(dest_path)
-            os.makedirs(dest_dirpath, exist_ok=True)
-            shutil.copy(src_path, dest_path)
-    '''
     module_map = {
         k: v
         for k, v in local_import_tracker.local_imports.items()
         if not os.path.isdir(v)
     }
-
-    print(f'{module_map=}')
+    # print(f'{module_map=}')
 
     for k, v in module_map.items():
         skip_module = False
@@ -220,7 +207,47 @@ def create_app(
                 g.script(f"import * as {v} from '/{k}'; window.{v} = {v};", type='module')
 
         if isinstance(ready, (ModuleType, Callable)):
-            g.script(ready, type='text/python', defer=None)
+            if isinstance(ready, (JsModuleType, TsModuleType, JsxModuleType, TsxModuleType)):
+                print('!!!', ready)
+                gladius_cache: dict = get_gladius_cache()
+                build_dir: str = gladius_cache['build_dir']
+                print(f'{gladius_cache=} {build_dir=}')
+
+                path: str = os.path.relpath(ready.path)
+                outfile: str = os.path.join(os.getcwd(), 'static', '__app__', path)
+                ext: str = os.path.splitext(path)[1]
+
+                if ext in {'.js', '.ts', '.jsx', '.tsx'}:
+                    outfile = os.path.splitext(outfile)[0] + '.js'
+                else:
+                    raise ValueError(f'Unsupported extension: {ext}')
+
+                cmds = [
+                    [
+                        'esbuild',
+                        path,
+                        '--jsx-factory=h',
+                        # '--jsx-fragment=Fragment',
+                        '--format=esm',
+                        '--platform=node',
+                        '--bundle',
+                        '--sourcemap',
+                        '--loader:.jsx=jsx',
+                        '--loader:.tsx=tsx',
+                        f'--outfile={outfile}',
+                    ]
+                ]
+
+                exec_npm_post_bundle(build_dir, cmds)
+
+                bundle_path: str = '/' + os.path.relpath(outfile)
+
+                with page['head']:
+                    g.script(f'''
+                        import * as _ from '{bundle_path}?v={randint(0, 2 ** 32)}';
+                    ''', type='module', defer=None)
+            else:
+                g.script(ready, type='text/python', defer=None)
         elif isinstance(ready, str):
             ready_module_name, _ = os.path.splitext(ready)
 

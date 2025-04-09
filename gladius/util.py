@@ -3,6 +3,8 @@ __all__ = [
     'install_npm_package',
     'compile_npm_package',
     'install_compile_npm_packages',
+    'exec_npm_post_bundle',
+    'get_gladius_cache',
 ]
 
 import os
@@ -385,25 +387,26 @@ def install_compile_npm_packages(
         dest_paths.extend(paths)
         t.update(1)
 
-    for cmd in npm_post_bundle:
-        print(f'{build_dir=} {cmd=}')
-
-        p = npx( # type: ignore
-            cmd,
-            cwd=build_dir,
-            stdout=PIPE,
-            stderr=PIPE,
-            return_completed_process=True,
-        )
-
-        if p.returncode != 0:
-            print('install_npm_package:', p)
-            print('stdout:')
-            print(p.stdout)
-            print('stderr:')
-            print(p.stderr)
-
-        assert p.returncode == 0
+    # for cmd in npm_post_bundle:
+    #     # print(f'{build_dir=} {cmd=}')
+    #
+    #     p = npx( # type: ignore
+    #         cmd,
+    #         cwd=build_dir,
+    #         stdout=PIPE,
+    #         stderr=PIPE,
+    #         return_completed_process=True,
+    #     )
+    #
+    #     if p.returncode != 0:
+    #         print('install_npm_package:', p)
+    #         print('stdout:')
+    #         print(p.stdout)
+    #         print('stderr:')
+    #         print(p.stderr)
+    #
+    #     assert p.returncode == 0
+    exec_npm_post_bundle(build_dir, npm_post_bundle)
 
     # print(f'{dest_paths=}')
 
@@ -436,6 +439,40 @@ def install_compile_npm_packages(
         print('saved npm cache', cache_path)
 
     return page_paths, page_links, page_scripts
+
+
+def exec_npm_post_bundle(build_dir: str, npm_post_bundle: list[list[str]]):
+    for cmd in npm_post_bundle:
+        print(f'{build_dir=} {cmd=}')
+
+        p = npx( # type: ignore
+            cmd,
+            cwd=build_dir,
+            stdout=PIPE,
+            stderr=PIPE,
+            return_completed_process=True,
+        )
+
+        if p.returncode != 0:
+            print('install_npm_package:', p)
+            print('stdout:')
+            print(p.stdout)
+            print('stderr:')
+            print(p.stderr)
+
+        assert p.returncode == 0
+
+
+def get_gladius_cache() -> dict:
+    cache_dir = '.cache'
+    cache_file = 'npm_packages.json'
+    cache_path = os.path.join(cache_dir, cache_file)
+    gladius_cache: dict
+
+    with open(cache_path, 'r') as f:
+        gladius_cache = json.load(f)
+
+    return gladius_cache
 
 
 def split_name_and_version(pkg_name: str) -> tuple[str, str]:

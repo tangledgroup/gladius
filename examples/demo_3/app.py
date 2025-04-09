@@ -1,7 +1,6 @@
-from gladius import create_app, run_app, capture_imports
+from gladius import create_app, run_app
 
-with capture_imports() as module_map:
-    import client.app
+import client.app
 
 
 # npm packages
@@ -13,7 +12,6 @@ npm_packages = {
 # create simple aiohttp web app
 g, page, app = create_app(
     npm_packages=npm_packages,
-    module_map=module_map,
     ready=client.app,
 )
 

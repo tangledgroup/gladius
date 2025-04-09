@@ -1,0 +1,17 @@
+import { Messages } from './Messages';
+
+export const Main = (props) => {
+  return (
+    <main class="container" x-data>
+        <h1>Gladius Demo - Messages</h1>
+        <div class="form">
+            <fieldset role="group">
+                <input name="message" type="text" placeholder="Enter your message" autocomplete="off" id="message" x-on:keydown="send" />
+                <input type="submit" value="Send" x-on:click="send" />
+            </fieldset>
+        </div>
+
+        <Messages />
+    </main>
+  );
+}

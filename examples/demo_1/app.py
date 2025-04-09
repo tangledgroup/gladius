@@ -1,7 +1,6 @@
-from gladius import create_app, run_app, capture_imports
+from gladius import create_app, run_app
 
-with capture_imports() as module_map:
-    from client_utils import f0 # noqa
+from client_utils import f0 # noqa
 
 
 # required npm packages
@@ -9,6 +8,7 @@ npm_packages = {
     '@picocss/pico': ['css/pico.css'],
     'nprogress': ['nprogress.js', 'nprogress.css'],
 }
+
 
 # client-side click handler
 def ready():
@@ -34,7 +34,6 @@ def ready():
 # create simple aiohttp web server
 g, page, app = create_app(
     npm_packages=npm_packages,
-    module_map=module_map,
     ready=ready,
     app_init_args={
         'client_max_size': 1024 ** 3,

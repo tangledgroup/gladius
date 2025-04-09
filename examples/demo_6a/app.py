@@ -1,9 +1,8 @@
 import os
 from random import randint
-from gladius import create_app, run_app, capture_imports
+from gladius import create_app, run_app
 
-with capture_imports() as module_map:
-    import client_app
+import client_app
 
 
 # required npm packages
@@ -30,7 +29,6 @@ g, page, app = create_app(
             '--global-name=app',
         ]
     ],
-    module_map=module_map,
     ready=client_app,
 )
 
