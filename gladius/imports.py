@@ -6,52 +6,8 @@ __all__ = [
 import sys
 import importlib.util
 from pathlib import Path
-# from contextlib import contextmanager
 
 
-'''
-#
-# capture_imports
-#
-@contextmanager
-def capture_imports():
-    ignored_modules_names: set[str] = set(sys.builtin_module_names) | set(sys.stdlib_module_names)
-
-    cur_modules: dict[str, str] = {
-        m.__name__: m.__file__
-        for m in sys.modules.values() # type: ignore
-        if [n for n in m.__name__.split('.') if n][0] not in ignored_modules_names and
-            hasattr(m, '__file__')
-    }
-
-    # NOTE: module_map is mutable object, and it is required to be to capture all imports
-    module_map: dict[str, str] = {}
-    yield module_map
-
-    new_modules = {
-        m.__name__: m
-        for m in sys.modules.values()
-        if [n for n in m.__name__.split('.') if n][0] not in ignored_modules_names and
-            hasattr(m, '__file__')
-    }
-
-    module_map.update({
-        name: m.__file__
-        for name, m in new_modules.items() # type: ignore
-        if name not in cur_modules
-    })
-
-    for name, m in new_modules.items():
-        if name in cur_modules:
-            continue
-
-        setattr(m, 'module_map', module_map)
-'''
-
-
-#
-# local_import_tracker
-#
 project_root = Path.cwd()
 
 
@@ -90,7 +46,7 @@ class LocalImportTracker:
             except (ValueError, AttributeError):
                 pass
 
-        return None  # Defer to other finders
+        return None # Defer to other finders
 
 
 # Install the hook
