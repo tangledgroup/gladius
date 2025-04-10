@@ -37,7 +37,7 @@ def create_app(
     scripts: list[str | dict]=[],
     npm_packages: Mapping[str, Union[list[str], dict[str, Any]]]={},
     npm_post_bundle: list[list[str]]=[],
-    ready: Optional[ModuleType | Callable]=None,
+    ready: Optional[ModuleType | Callable | list[ModuleType]]=None,
     app_init_args: dict | None=None,
 ) -> tuple[Gladius, Element, web.Application]:
     # assert isinstance(npm_packages, list) or isinstance(npm_packages, dict)
@@ -98,7 +98,7 @@ def create_app(
     )
 
     async def page_handler(request):
-        print('page_handler', request.path)
+        # print('page_handler', request.path)
         return page.render()
 
     app.router.add_routes([
@@ -139,16 +139,6 @@ def create_app(
     src_path: str = client.__file__
     dest_path: str = os.path.join(static_path, root_app_dir, 'gladius.py')
     shutil.copy(src_path, dest_path)
-
-    '''
-    # if ready is path to file, copy it into __app__, and include it in config
-    if isinstance(ready, str) and os.path.exists(ready):
-        # make sure parent directory of dest file exists
-        module_app_path: str = os.path.join(static_path, root_app_dir, ready)
-        d, _ = os.path.split(module_app_path)
-        os.makedirs(d, exist_ok=True)
-        shutil.copy(ready, module_app_path)
-    '''
 
     ignored_modules_names: set[str] = (
         set(sys.builtin_module_names) |
@@ -206,57 +196,62 @@ def create_app(
             if os.path.splitext(k)[1] in ('.js', '.mjs'):
                 g.script(f"import * as {v} from '/{k}'; window.{v} = {v};", type='module')
 
-        if isinstance(ready, (ModuleType, Callable)):
-            if isinstance(ready, (JsModuleType, TsModuleType, JsxModuleType, TsxModuleType)):
-                print('!!!', ready)
-                gladius_cache: dict = get_gladius_cache()
-                build_dir: str = gladius_cache['build_dir']
-                print(f'{gladius_cache=} {build_dir=}')
-
-                path: str = os.path.relpath(ready.path)
-                outfile: str = os.path.join(os.getcwd(), 'static', '__app__', path)
-                ext: str = os.path.splitext(path)[1]
-
-                if ext in {'.js', '.ts', '.jsx', '.tsx'}:
-                    outfile = os.path.splitext(outfile)[0] + '.js'
-                else:
-                    raise ValueError(f'Unsupported extension: {ext}')
-
-                cmds = [
-                    [
-                        'esbuild',
-                        path,
-                        '--jsx-factory=h',
-                        # '--jsx-fragment=Fragment',
-                        '--format=esm',
-                        '--platform=node',
-                        '--bundle',
-                        '--sourcemap',
-                        '--loader:.jsx=jsx',
-                        '--loader:.tsx=tsx',
-                        f'--outfile={outfile}',
-                    ]
-                ]
-
-                exec_npm_post_bundle(build_dir, cmds)
-
-                bundle_path: str = '/' + os.path.relpath(outfile)
-
-                with page['head']:
-                    g.script(f'''
-                        import * as _ from '{bundle_path}?v={randint(0, 2 ** 32)}';
-                    ''', type='module', defer=None)
+        def embed_module(n):
+            if isinstance(n, (JsModuleType, TsModuleType, JsxModuleType, TsxModuleType)):
+                embed_js_module(n)
             else:
-                g.script(ready, type='text/python', defer=None)
-        elif isinstance(ready, str):
-            ready_module_name, _ = os.path.splitext(ready)
+                g.script(n, type='text/python', defer=None)
 
-            g.script(
-                f'\nimport sys; sys.path = ["static/__app__"]\nimport {ready_module_name}\n',
-                type='text/python',
-                defer=None,
-            )
-        else:
-            pass
+        def embed_callable(n):
+            g.script(n, type='text/python', defer=None)
+
+        def embed_js_module(n):
+            gladius_cache: dict = get_gladius_cache()
+            build_dir: str = gladius_cache['build_dir']
+            print(f'{gladius_cache=} {build_dir=}')
+
+            path: str = os.path.relpath(n.path)
+            outfile: str = os.path.join(os.getcwd(), 'static', '__app__', path)
+            ext: str = os.path.splitext(path)[1]
+
+            if ext in {'.js', '.ts', '.jsx', '.tsx'}:
+                outfile = os.path.splitext(outfile)[0] + '.js'
+            else:
+                raise ValueError(f'Unsupported extension: {ext}')
+
+            cmds = [
+                [
+                    'esbuild',
+                    path,
+                    '--jsx-factory=h',
+                    # '--jsx-fragment=Fragment',
+                    '--format=esm',
+                    '--platform=node',
+                    '--bundle',
+                    '--sourcemap',
+                    '--loader:.jsx=jsx',
+                    '--loader:.tsx=tsx',
+                    f'--outfile={outfile}',
+                ]
+            ]
+
+            exec_npm_post_bundle(build_dir, cmds)
+
+            bundle_path: str = '/' + os.path.relpath(outfile)
+
+            with page['head']:
+                g.script(f'''
+                    import * as _ from '{bundle_path}?v={randint(0, 2 ** 32)}';
+                ''', type='module', defer=None)
+
+        if isinstance(ready, ModuleType):
+            embed_module(ready)
+        elif isinstance(ready, Callable):
+            embed_callable(ready)
+        elif isinstance(ready, list):
+            assert all([isinstance(n, ModuleType) for n in ready])
+
+            for n in ready:
+                embed_module(n)
 
     return g, page, app

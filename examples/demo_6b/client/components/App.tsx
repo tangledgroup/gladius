@@ -38,7 +38,7 @@ const send = window.send = (event: any) => {
   message_input.value = '';
   message_input.focus();
 
-  // console.log(window.f0(10, 20));
+  console.log(window.f0(10, 20));
 };
 
 export const App = (props?: any) => {
