@@ -70,11 +70,13 @@ def create_app(
     shutil.rmtree(root_app_dir, ignore_errors=True)
     os.makedirs(root_app_dir, exist_ok=True)
 
-    root_npm_dir: str = os.path.join(os.getcwd(), static_path, '__npm__')
+    # root_npm_dir: str = os.path.join(os.getcwd(), static_path, '__npm__')
     # print(f'{root_npm_dir=}')
+    dest_static_path: str = os.path.join(os.getcwd(), static_path)
 
     npm_paths, npm_links, npm_scripts = install_compile_npm_packages(
-        root_npm_dir,
+        # root_npm_dir,
+        dest_static_path,
         npm_packages, # type: ignore
         npm_post_bundle,
         ready,
@@ -157,6 +159,11 @@ def create_app(
     # print(f'{module_map=}')
 
     for k, v in module_map.items():
+        _, ext = os.path.splitext(v)
+
+        if ext != '.py':
+            continue
+
         skip_module = False
 
         for m in ignored_modules_names:

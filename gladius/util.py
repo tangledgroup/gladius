@@ -141,7 +141,7 @@ def copy_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info: 
             if not os.path.exists(src_path):
                 src_path = os.path.join(build_dir, 'node_modules', name, k)
 
-            dest_path = os.path.join(static_path, v)
+            dest_path = os.path.join(static_path, '__npm__', v)
 
             if not (os.path.exists(src_path) and os.path.isfile(src_path)):
                 raise FileNotFoundError(src_path)
@@ -184,7 +184,7 @@ def bundle_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info
             if not os.path.exists(src_path):
                 src_path = os.path.join(build_dir, 'node_modules', name, k)
 
-            dest_path = os.path.join(static_path, v)
+            dest_path = os.path.join(static_path, '__npm__', v)
 
             if not (os.path.exists(src_path) and os.path.isfile(src_path)):
                 raise FileNotFoundError(src_path)
@@ -266,6 +266,9 @@ def compile_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_inf
     # create static directory if does not exist
     if not (os.path.exists(static_path) and os.path.isdir(static_path)):
         os.makedirs(static_path, exist_ok=True)
+
+    if not (os.path.exists(os.path.join(static_path, '__npm__')) and os.path.isdir(os.path.join(static_path, '__npm__'))):
+        os.makedirs(os.path.join(static_path, '__npm__'), exist_ok=True)
 
     if isinstance(pkg_info, list):
         # print(f'new {pkg_info=}')
@@ -395,17 +398,37 @@ def install_compile_npm_packages(
         t.update(1)
 
     # check npm_post_bundle
-    if ready and isinstance(ready, list):
+    if isinstance(ready, list):
+        assert all([isinstance(n, ModuleType) for n in ready])
+
         for m in ready:
             if isinstance(m, CssModuleType):
-                print('!!!', m)
+                # print('!!!', m)
                 input_path = os.path.relpath(m.path)
-                print(f'{input_path=}')
-                output_path = os.path.join(static_path, '__app__', 'style.css')
-                print(f'{output_path=}')
+                # print(f'{input_path=}')
+                _, filename = os.path.split(input_path)
+                output_path = os.path.join(static_path, '__app__', input_path)
+                # print(f'{output_path=}')
 
-                # cmd = ['@tailwindcss/cli', '-i', input_path, '-o', output_path]
-                # npm_post_bundle.insert(0, cmd)
+                cmd = ['@tailwindcss/cli', '-i', input_path, '-o', output_path]
+                # print(f'{cmd=}')
+                npm_post_bundle.insert(0, cmd)
+
+                href = '/' + os.path.join(os.path.relpath(output_path))
+                # print(f'{href=}')
+                page_link = {'rel': 'stylesheet', 'href': href}
+                page_links.append(page_link)
+
+                # generate python placeholder/empty file
+                dirpath, filename = os.path.split(output_path)
+                basename, ext = os.path.splitext(filename)
+                python_output_path = os.path.join(dirpath, f'{basename}.py')
+                # print(f'{python_output_path=}')
+
+                os.makedirs(dirpath, exist_ok=True)
+
+                with open(python_output_path, 'w') as f:
+                    f.write(f'# {input_path}\n')
 
     # post bundle commands/scripts
     exec_npm_post_bundle(build_dir, npm_post_bundle)
