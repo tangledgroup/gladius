@@ -12,12 +12,15 @@ import json
 import shutil
 import hashlib
 from subprocess import PIPE
-from typing import Any, Union, Optional
+from types import ModuleType
+from typing import Any, Optional, Union, Callable
 from tempfile import TemporaryDirectory
 
 import json5
 from tqdm import tqdm
 from deepmerge import always_merger
+
+from gladius.imports import CssModuleType
 
 try:
     from nodejs_wheel import npm, npx
@@ -33,7 +36,7 @@ def make_page(
     lang: str='en',
     title: str='Gladius',
     description: str='Gladius',
-    favicon: str | dict='/static/img/favicon.png',
+    favicon: str | dict='/static/img/favicon.png', # FIXME: use base64 for favicon
     links: list[str | dict]=[],
     scripts: list[str | dict]=[],
 ) -> Element:
@@ -175,7 +178,7 @@ def bundle_npm_package(static_path: str, build_dir: str, pkg_name: str, pkg_info
     if isinstance(pkg_bundle, dict):
         for k, v in pkg_bundle.items():
             # try first workspace dir
-            src_path = os.path.join(build_dir,workspace_name, 'node_modules', name, k)
+            src_path = os.path.join(build_dir, workspace_name, 'node_modules', name, k)
 
             # then temp project dir
             if not os.path.exists(src_path):
@@ -284,6 +287,7 @@ def install_compile_npm_packages(
     static_path: str,
     npm_packages: dict[str, Union[list[str], dict[str, Any]]]={},
     npm_post_bundle: list[list[str]]=[],
+    ready: Optional[ModuleType | Callable | list[ModuleType]]=None,
 ) -> tuple[dict[str, list[str]], list[str | dict], list[str | dict]]:
     build_dir: Optional[str] = None
     page_paths: dict[str, list[str]] = {}
@@ -328,6 +332,20 @@ def install_compile_npm_packages(
     workspace_name: str = f'workspace-{hash_npm_packages(npm_packages)}'
     print(f'{workspace_name=}')
 
+    # check npm_packages
+    for pkg_name, pkg_info in list(npm_packages.items()):
+        if pkg_name == 'tailwindcss' or pkg_name.startswith('tailwindcss@'):
+            has_tailwindcss_cli = False
+
+            for pkg_name2, pkg_info2 in list(npm_packages.items()):
+                if pkg_name2 == '@tailwindcss/cli' and pkg_name2.startswith('@tailwindcss/cli@'):
+                    has_tailwindcss_cli = True
+                    break
+
+            if not has_tailwindcss_cli:
+                npm_packages['@tailwindcss/cli'] = []
+
+    # progress
     total = 0
 
     if not os.path.exists(os.path.join(build_dir, 'node_modules', 'esbuild')):
@@ -375,6 +393,19 @@ def install_compile_npm_packages(
         page_paths[pkg_name] = paths
         dest_paths.extend(paths)
         t.update(1)
+
+    # check npm_post_bundle
+    if ready and isinstance(ready, list):
+        for m in ready:
+            if isinstance(m, CssModuleType):
+                print('!!!', m)
+                input_path = os.path.relpath(m.path)
+                print(f'{input_path=}')
+                output_path = os.path.join(static_path, '__app__', 'style.css')
+                print(f'{output_path=}')
+
+                # cmd = ['@tailwindcss/cli', '-i', input_path, '-o', output_path]
+                # npm_post_bundle.insert(0, cmd)
 
     # post bundle commands/scripts
     exec_npm_post_bundle(build_dir, npm_post_bundle)

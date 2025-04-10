@@ -18,13 +18,18 @@ from .imports import (
     TsModuleType,
     JsxModuleType,
     TsxModuleType,
-    # WasmModuleType,
-    # CssModuleType,
+    CssModuleType,
+    WasmModuleType,
     local_import_tracker,
 )
 from .aiohttp import aiohttp_middlewares
 from .util import make_page, install_compile_npm_packages, exec_npm_post_bundle, get_gladius_cache
 from . import client
+
+
+DEFAULT_APP_INIT_ARGS = {
+    'client_max_size': 1024 ** 3,
+}
 
 
 def create_app(
@@ -38,13 +43,12 @@ def create_app(
     npm_packages: Mapping[str, Union[list[str], dict[str, Any]]]={},
     npm_post_bundle: list[list[str]]=[],
     ready: Optional[ModuleType | Callable | list[ModuleType]]=None,
-    app_init_args: dict | None=None,
+    app_init_args: dict=DEFAULT_APP_INIT_ARGS,
 ) -> tuple[Gladius, Element, web.Application]:
+    # local scope gladius instance
     g = Gladius()
 
-    if not app_init_args:
-        app_init_args = {}
-
+    # aiohttp app
     app = web.Application(middlewares=aiohttp_middlewares, **app_init_args)
 
     # install and compile npm packages
@@ -73,6 +77,7 @@ def create_app(
         root_npm_dir,
         npm_packages, # type: ignore
         npm_post_bundle,
+        ready,
     )
 
     page_links.extend(npm_links)
