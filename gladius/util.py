@@ -15,7 +15,9 @@ from subprocess import PIPE
 from typing import Any, Union, Optional
 from tempfile import TemporaryDirectory
 
+import json5
 from tqdm import tqdm
+from deepmerge import always_merger
 
 try:
     from nodejs_wheel import npm, npx
@@ -289,23 +291,10 @@ def install_compile_npm_packages(
     page_scripts: list[str | dict] = []
     dest_paths: list[str] = []
 
-    # try to load npm cache
-    cache_dir = '.cache'
-    cache_file = 'npm_packages.json'
-    os.makedirs(cache_dir, exist_ok=True)
-    cache_path = os.path.join(cache_dir, cache_file)
-
-    if os.path.exists(cache_path):
-        with open(cache_path, 'r') as f:
-            cached_npm_packages = json.load(f)
-
-        if cached_npm_packages['npm_packages'] == npm_packages and not npm_post_bundle:
-            page_paths = cached_npm_packages['page_paths']
-            page_links = cached_npm_packages['page_links']
-            page_scripts = cached_npm_packages['page_scripts']
-            print('loaded npm cache', cache_path)
-
-        build_dir = cached_npm_packages['build_dir']
+    # load gladius cache
+    gladius_cache_path, gladius_cache = get_gladius_cache()
+    build_dir = gladius_cache.get('build_dir', None)
+    print('loaded gladius cache', gladius_cache_path)
 
     if build_dir and os.path.exists(build_dir):
         pass
@@ -314,7 +303,7 @@ def install_compile_npm_packages(
         build_dir = td.name
 
     print(f'{build_dir=}')
-    ignore = shutil.ignore_patterns('.cache', '__npm__', '__app__')
+    ignore = shutil.ignore_patterns('.gladius', '__npm__', '__app__')
     shutil.copytree(os.getcwd(), build_dir, ignore=ignore, dirs_exist_ok=True)
 
     if not os.path.exists(os.path.join(build_dir, 'package.json')):
@@ -387,29 +376,10 @@ def install_compile_npm_packages(
         dest_paths.extend(paths)
         t.update(1)
 
-    # for cmd in npm_post_bundle:
-    #     # print(f'{build_dir=} {cmd=}')
-    #
-    #     p = npx( # type: ignore
-    #         cmd,
-    #         cwd=build_dir,
-    #         stdout=PIPE,
-    #         stderr=PIPE,
-    #         return_completed_process=True,
-    #     )
-    #
-    #     if p.returncode != 0:
-    #         print('install_npm_package:', p)
-    #         print('stdout:')
-    #         print(p.stdout)
-    #         print('stderr:')
-    #         print(p.stderr)
-    #
-    #     assert p.returncode == 0
+    # post bundle commands/scripts
     exec_npm_post_bundle(build_dir, npm_post_bundle)
 
     # print(f'{dest_paths=}')
-
     for path in dest_paths:
         _, ext = os.path.splitext(path)
 
@@ -422,21 +392,24 @@ def install_compile_npm_packages(
             page_script = {'type': 'module', 'src': src, 'defer': None}
             page_scripts.append(page_script)
 
-    # save npm cache
-    if os.path.exists(cache_path):
-        os.remove(cache_path)
+    # save gladius cache
+    gladius_cache = {
+        'build_dir': build_dir,
+        'npm_packages': npm_packages,
+        'page_paths': page_paths,
+        'page_links': page_links,
+        'page_scripts': page_scripts,
+    }
 
-    with open(cache_path, 'w') as f:
-        cached_npm_packages = {
-            'build_dir': build_dir,
-            'npm_packages': npm_packages,
-            'page_paths': page_paths,
-            'page_links': page_links,
-            'page_scripts': page_scripts,
+    gladius_cache_path = save_gladius_cache(gladius_cache)
+    print('saved gladius cache', gladius_cache_path)
+
+    tsconfig_path = create_or_update_tsconfig({
+        'compilerOptions': {
+            'baseUrl': os.path.join(build_dir, 'node_modules')
         }
-
-        json.dump(cached_npm_packages, f, indent=2)
-        print('saved npm cache', cache_path)
+    })
+    print('create/update tsconfig', tsconfig_path)
 
     return page_paths, page_links, page_scripts
 
@@ -463,16 +436,27 @@ def exec_npm_post_bundle(build_dir: str, npm_post_bundle: list[list[str]]):
         assert p.returncode == 0
 
 
-def get_gladius_cache() -> dict:
-    cache_dir = '.cache'
-    cache_file = 'npm_packages.json'
-    cache_path = os.path.join(cache_dir, cache_file)
+def get_gladius_cache() -> tuple[str, dict]:
+    gladius_cache_path = '.gladius'
     gladius_cache: dict
 
-    with open(cache_path, 'r') as f:
-        gladius_cache = json.load(f)
+    if os.path.exists(gladius_cache_path):
+        with open(gladius_cache_path, 'r') as f:
+            gladius_cache = json.load(f)
+    else:
+        gladius_cache = {}
+        gladius_cache_path = save_gladius_cache(gladius_cache)
 
-    return gladius_cache
+    return gladius_cache_path, gladius_cache
+
+
+def save_gladius_cache(gladius_cache: dict) -> str:
+    gladius_cache_path = '.gladius'
+
+    with open(gladius_cache_path, 'w') as f:
+        json.dump(gladius_cache, f, indent=2)
+
+    return gladius_cache_path
 
 
 def split_name_and_version(pkg_name: str) -> tuple[str, str]:
@@ -490,6 +474,38 @@ def split_name_and_version(pkg_name: str) -> tuple[str, str]:
             ver = 'latest'
 
     return name, ver
+
+
+def create_or_update_tsconfig(tsconfig: dict) -> str:
+    tsconfig_path = 'tsconfig.json'
+
+    if os.path.exists(tsconfig_path):
+        #  update
+        with open(tsconfig_path, 'r') as f:
+            current_tsconfig = json5.load(f)
+
+        final_tsconfig = always_merger.merge(current_tsconfig, tsconfig)
+    else:
+        # create
+        assert 'compilerOptions' in tsconfig and 'baseUrl' in tsconfig['compilerOptions']
+
+        default_tsconfig = {
+            "compilerOptions": {
+                # NOTE: key/value for "baseUrl" should be in tsconfig
+                # "baseUrl": "/tmp/gladius-bpqnncpq/node_modules",
+                "jsx": "preserve",
+                "jsxFactory": "h",
+                "jsxFragmentFactory": "Fragment"
+            },
+            "include": ["**/*.ts", "**/*.tsx"]
+        }
+
+        final_tsconfig = always_merger.merge(default_tsconfig, tsconfig)
+
+    with open(tsconfig_path, 'w') as f:
+        json.dump(final_tsconfig, f, indent=2)
+
+    return tsconfig_path
 
 
 def hash_npm_packages(npm_packages: dict[str, Any]) -> str:

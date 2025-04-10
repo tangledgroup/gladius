@@ -616,6 +616,21 @@ files = [
 all = ["flake8 (>=7.1.1)", "mypy (>=1.11.2)", "pytest (>=8.3.2)", "ruff (>=0.6.2)"]
 
 [[package]]
+name = "json5"
+version = "0.12.0"
+description = "A Python implementation of the JSON5 data format."
+optional = false
+python-versions = ">=3.8.0"
+groups = ["main"]
+files = [
+    {file = "json5-0.12.0-py3-none-any.whl", hash = "sha256:6d37aa6c08b0609f16e1ec5ff94697e2cbbfbad5ac112afa05794da9ab7810db"},
+    {file = "json5-0.12.0.tar.gz", hash = "sha256:0b4b6ff56801a1c7dc817b0241bca4ce474a0e6a163bfef3fc594d3fd263ff3a"},
+]
+
+[package.extras]
+dev = ["build (==1.2.2.post1)", "coverage (==7.5.4)", "coverage (==7.8.0)", "mypy (==1.14.1)", "mypy (==1.15.0)", "pip (==25.0.1)", "pylint (==3.2.7)", "pylint (==3.3.6)", "ruff (==0.11.2)", "twine (==6.1.0)", "uv (==0.6.11)"]
+
+[[package]]
 name = "multidict"
 version = "6.2.0"
 description = "multidict implementation"
@@ -1177,4 +1192,4 @@ all = ["aiohttp", "gunicorn", "nodejs-wheel", "uvloop"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "ef3b15070562dd52360573481c87a472f2e1aa93cbf4ce3fa84e8c257f22b8c2"
+content-hash = "156960fa8616f8c942360f2837d477b118106f9533916a663746d7a72941c6a2"

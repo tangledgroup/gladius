@@ -40,7 +40,6 @@ def create_app(
     ready: Optional[ModuleType | Callable | list[ModuleType]]=None,
     app_init_args: dict | None=None,
 ) -> tuple[Gladius, Element, web.Application]:
-    # assert isinstance(npm_packages, list) or isinstance(npm_packages, dict)
     g = Gladius()
 
     if not app_init_args:
@@ -53,7 +52,6 @@ def create_app(
     page_scripts = deepcopy(scripts)
     npm_packages = deepcopy(npm_packages)
 
-    # NOTE: https://github.com/tangledgroup/gladius/commit/b019ddea7fbc41074bdd7da921cdbcf612f8da13
     npm_packages['brython'] = { # type: ignore
         'copy': {
             'brython.js': 'brython/',
@@ -206,7 +204,7 @@ def create_app(
             g.script(n, type='text/python', defer=None)
 
         def embed_js_module(n):
-            gladius_cache: dict = get_gladius_cache()
+            gladius_cache_path, gladius_cache = get_gladius_cache()
             build_dir: str = gladius_cache['build_dir']
             print(f'{gladius_cache=} {build_dir=}')
 

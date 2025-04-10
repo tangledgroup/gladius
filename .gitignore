@@ -162,6 +162,5 @@ cython_debug/
 node_modules/
 __npm__
 __app__
-__mpy__
-__bpy__
+.gladius
 tsconfig.json
