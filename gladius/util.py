@@ -416,7 +416,7 @@ def install_compile_npm_packages(
 
 def exec_npm_post_bundle(build_dir: str, npm_post_bundle: list[list[str]]):
     for cmd in npm_post_bundle:
-        print(f'{build_dir=} {cmd=}')
+        # print(f'{build_dir=} {cmd=}')
 
         p = npx( # type: ignore
             cmd,

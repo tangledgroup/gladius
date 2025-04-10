@@ -206,7 +206,7 @@ def create_app(
         def embed_js_module(n):
             gladius_cache_path, gladius_cache = get_gladius_cache()
             build_dir: str = gladius_cache['build_dir']
-            print(f'{gladius_cache=} {build_dir=}')
+            # print(f'{gladius_cache=} {build_dir=}')
 
             path: str = os.path.relpath(n.path)
             outfile: str = os.path.join(os.getcwd(), 'static', '__app__', path)

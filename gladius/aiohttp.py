@@ -1,4 +1,5 @@
 __all__ = [
+    # 'GunicornApp',
     'element_middleware',
     'html_middleware',
     'json_middleware',
@@ -6,8 +7,13 @@ __all__ = [
     'run_app',
 ]
 
+import os
+import sys
+# import subprocess
+
 from aiohttp import web
 from aiohttp.web import middleware
+
 from .element import Element
 
 
@@ -51,5 +57,23 @@ aiohttp_middlewares = [
 ]
 
 
-def run_app(*args, **kwargs):
-    web.run_app(*args, **kwargs)
+def run_app(app, host='0.0.0.0', port=5000, workers=1, timeout=300, reload=True):
+    if reload:
+        cmd = [
+            sys.executable,
+            '-B',
+            '-u',
+            '-m',
+            'gunicorn',
+            '--reload',
+            '--bind', f'{host}:{port}',
+            '--timeout', f'{timeout}',
+            '--workers', f'{workers}',
+            '--worker-class', 'aiohttp.GunicornWebWorker',
+            'app:app'
+        ]
+
+        # subprocess.run(cmd, check=True)
+        os.execvp(sys.executable, cmd)
+    else:
+        web.run_app(app, host='0.0.0.0', port=5000)
