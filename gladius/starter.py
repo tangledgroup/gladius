@@ -63,6 +63,14 @@ def create_app(
         },
     }
 
+    # npm_packages['vhtml'] = { # type: ignore
+    #     'copy': {
+    #         'dist/vhtml.js': 'vhtml/',
+    #     },
+    # }
+
+    # npm_packages['@types/vhtml'] = [] # type: ignore
+
     root_app_dir: str = os.path.join(os.getcwd(), static_path, '__app__')
     # print(f'{root_app_dir=}')
 
@@ -139,6 +147,40 @@ def create_app(
     with page['head']:
         g.script(src=os.path.join('/', 'static', '__npm__', 'brython', 'brython.js'))
         g.script(src=os.path.join('/', 'static', '__npm__', 'brython', 'brython_stdlib.js'))
+        # g.script(src=os.path.join('/', 'static', '__npm__', 'vhtml', 'vhtml.js'))
+        # g.script("window.h = window.vhtml;")
+        g.script('''
+            function h(type, props, ...children) {
+              return { type, props, children };
+            }
+
+            function render(vnode, container) {
+              if (typeof vnode === "string" || typeof vnode === "number") {
+                // Text node
+                return container.appendChild(document.createTextNode(vnode));
+              }
+
+              const { type, props, children } = vnode;
+              const element = document.createElement(type);
+
+              // Set attributes and event handlers
+              Object.entries(props || {}).forEach(([key, value]) => {
+                if (key.startsWith("on")) {
+                  // Handle events (e.g., "onClick" → "click")
+                  element.addEventListener(key.slice(2).toLowerCase(), value);
+                } else {
+                  element.setAttribute(key, value);
+                }
+              });
+
+              // Render children recursively
+              (children || []).forEach((child) => render(child, element));
+              return container.appendChild(element);
+            }
+
+            window.h = h;
+            window.render = render;
+        ''')
 
     # copy gladius client-side libs
     src_path: str = client.__file__
