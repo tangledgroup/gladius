@@ -151,11 +151,7 @@ def create_app(
             }
 
             function render(vnode, container /* rootContainer */) {
-              let rootContainer = arguments[2];
-
-              if (rootContainer === undefined) {
-                rootContainer = container;
-              }
+              let rootContainer = arguments[2] || container;
 
               // Text node
               if (typeof vnode === "string" || typeof vnode === "number") {
@@ -163,6 +159,15 @@ def create_app(
               }
 
               const { type, props, children } = vnode;
+
+              // Handle function components [[5]][[7]]
+              if (typeof type === 'function') {
+                const componentProps = { ...props, children };
+                const componentVNode = type(componentProps);
+                return render(componentVNode, container, rootContainer);
+              }
+
+              // Regular elements
               const element = document.createElement(type);
 
               // Set attributes and event handlers
@@ -177,7 +182,7 @@ def create_app(
               // Render children recursively
               (children || []).forEach((child) => render(child, element, rootContainer));
 
-              if (container == rootContainer) {
+              if (container === rootContainer) {
                 rootContainer.innerHTML = '';
               }
 
