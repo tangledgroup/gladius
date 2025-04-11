@@ -40,7 +40,7 @@ def create_app(
     favicon: str | dict='img/favicon.png',
     links: list[str | dict]=[],
     scripts: list[str | dict]=[],
-    npm_packages: Mapping[str, Union[list[str], dict[str, Any]]]={},
+    npm_packages: Mapping[str, Union[list[str], dict[str, Any]]] | list={},
     npm_post_bundle: list[list[str]]=[],
     ready: Optional[ModuleType | Callable | list[ModuleType]]=None,
     app_init_args: dict=DEFAULT_APP_INIT_ARGS,
@@ -56,20 +56,15 @@ def create_app(
     page_scripts = deepcopy(scripts)
     npm_packages = deepcopy(npm_packages)
 
+    if isinstance(npm_packages, list):
+        npm_packages = {k: [] for k in npm_packages}
+
     npm_packages['brython'] = { # type: ignore
         'copy': {
             'brython.js': 'brython/',
             'brython_stdlib.js': 'brython/',
         },
     }
-
-    # npm_packages['vhtml'] = { # type: ignore
-    #     'copy': {
-    #         'dist/vhtml.js': 'vhtml/',
-    #     },
-    # }
-
-    # npm_packages['@types/vhtml'] = [] # type: ignore
 
     root_app_dir: str = os.path.join(os.getcwd(), static_path, '__app__')
     # print(f'{root_app_dir=}')
@@ -147,16 +142,23 @@ def create_app(
     with page['head']:
         g.script(src=os.path.join('/', 'static', '__npm__', 'brython', 'brython.js'))
         g.script(src=os.path.join('/', 'static', '__npm__', 'brython', 'brython_stdlib.js'))
-        # g.script(src=os.path.join('/', 'static', '__npm__', 'vhtml', 'vhtml.js'))
-        # g.script("window.h = window.vhtml;")
+
         g.script('''
+            const observers = [];
+
             function h(type, props, ...children) {
               return { type, props, children };
             }
 
-            function render(vnode, container) {
+            function render(vnode, container /* rootContainer */) {
+              let rootContainer = arguments[2];
+
+              if (rootContainer === undefined) {
+                rootContainer = container;
+              }
+
+              // Text node
               if (typeof vnode === "string" || typeof vnode === "number") {
-                // Text node
                 return container.appendChild(document.createTextNode(vnode));
               }
 
@@ -166,7 +168,6 @@ def create_app(
               // Set attributes and event handlers
               Object.entries(props || {}).forEach(([key, value]) => {
                 if (key.startsWith("on")) {
-                  // Handle events (e.g., "onClick" → "click")
                   element.addEventListener(key.slice(2).toLowerCase(), value);
                 } else {
                   element.setAttribute(key, value);
@@ -174,12 +175,52 @@ def create_app(
               });
 
               // Render children recursively
-              (children || []).forEach((child) => render(child, element));
+              (children || []).forEach((child) => render(child, element, rootContainer));
+
+              if (container == rootContainer) {
+                rootContainer.innerHTML = '';
+              }
+
               return container.appendChild(element);
             }
 
-            window.h = h;
-            window.render = render;
+            function effect(fn) {
+              const execute = () => {
+                observers.push(execute);
+
+                try {
+                  fn();
+                } finally {
+                  observers.pop();
+                }
+              };
+
+              execute();
+            }
+
+            function signal(value) {
+              const subscribers = new Set();
+
+              const getValue = () => {
+                const current = observers[observers.length - 1];
+
+                if (current) {
+                  subscribers.add(current);
+                }
+
+                return value;
+              };
+
+              const setValue = (newValue) => {
+                value = newValue;
+
+                for (const subscriber of subscribers) {
+                  subscriber();
+                }
+              };
+
+              return [getValue, setValue];
+            }
         ''')
 
     # copy gladius client-side libs

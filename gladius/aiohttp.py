@@ -66,6 +66,7 @@ def run_app(app, host='0.0.0.0', port=5000, workers=1, timeout=300, reload=True)
             '-m',
             'gunicorn',
             '--reload',
+            '--reload-engine', 'inotify', # NOTE: probably linux only
             '--bind', f'{host}:{port}',
             '--timeout', f'{timeout}',
             '--workers', f'{workers}',
