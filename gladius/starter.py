@@ -150,43 +150,134 @@ def create_app(
               return { type, props, children };
             }
 
-            function render(vnode, container /* rootContainer */) {
-              let rootContainer = arguments[2] || container;
+            function render(vnode, container, rootContainer = container, existingElement) {
+              if (container === rootContainer) {
+                existingElement = container._vnode?.element || container.firstChild;
+              }
 
-              // Text node
-              if (typeof vnode === "string" || typeof vnode === "number") {
-                return container.appendChild(document.createTextNode(vnode));
+              // Text node handling
+              if (typeof vnode === 'string' || typeof vnode === 'number') {
+                if (existingElement?.nodeType === Node.TEXT_NODE) {
+                  if (existingElement.textContent !== vnode) {
+                    existingElement.textContent = vnode;
+                  }
+                  return existingElement;
+                } else {
+                  const textNode = document.createTextNode(vnode);
+                  existingElement ? container.replaceChild(textNode, existingElement) : container.appendChild(textNode);
+                  return textNode;
+                }
               }
 
               const { type, props, children } = vnode;
 
-              // Handle function components [[5]][[7]]
+              // Function components
               if (typeof type === 'function') {
                 const componentProps = { ...props, children };
                 const componentVNode = type(componentProps);
-                return render(componentVNode, container, rootContainer);
+                const renderedElement = render(componentVNode, container, rootContainer, existingElement);
+
+                if (container === rootContainer) {
+                  container._vnode = { element: renderedElement };
+                }
+                return renderedElement;
               }
 
-              // Regular elements
-              const element = document.createElement(type);
+              // Element diffing and updates
+              let element;
+              if (existingElement?.tagName?.toLowerCase() === type) {
+                element = existingElement;
+                updateAttributes(element, props);
+              } else {
+                element = document.createElement(type);
+                updateAttributes(element, props);
+                existingElement ? container.replaceChild(element, existingElement) : container.appendChild(element);
+              }
 
-              // Set attributes and event handlers
-              Object.entries(props || {}).forEach(([key, value]) => {
-                if (key.startsWith("on")) {
-                  element.addEventListener(key.slice(2).toLowerCase(), value);
+              // Child reconciliation with key support
+              const newChildren = children.flat();
+              const existingChildren = Array.from(element.childNodes); // Static snapshot
+              const keyedElements = new Map();
+
+              // Build keyed elements map
+              existingChildren.forEach(child => {
+                if (child.nodeType === Node.ELEMENT_NODE) {
+                  const key = child.getAttribute?.('key');
+                  if (key) keyedElements.set(key, child);
+                }
+              });
+
+              let domIndex = 0; // Track position in static children array
+
+              newChildren.forEach(child => {
+                let existingChild = null;
+                let isNewlyCreated = false;
+
+                // Key-based matching
+                if (child.props?.key) {
+                  existingChild = keyedElements.get(child.props.key);
+                  if (existingChild) keyedElements.delete(child.props.key);
+                } else {
+                  // Positional matching using static array
+                  existingChild = existingChildren[domIndex];
+                }
+
+                // Render with proper existing element
+                const renderedChild = render(child, element, rootContainer, existingChild);
+
+                if (existingChild === renderedChild) {
+                  domIndex++;
+                } else {
+                  // Check if existingChild is still a valid child
+                  if (existingChild) {
+                    if (existingChild.parentNode === element) {
+                      element.replaceChild(renderedChild, existingChild);
+                    } else {
+                      element.appendChild(renderedChild);
+                    }
+                  } else {
+                    element.appendChild(renderedChild);
+                  }
+                  isNewlyCreated = true;
+                }
+
+                // Update position tracking for non-keyed elements
+                if (isNewlyCreated && !child.props?.key) {
+                  domIndex++;
+                }
+              });
+
+              // Clean up remaining elements
+              keyedElements.forEach(child => element.removeChild(child));
+              while (element.childNodes.length > newChildren.length) {
+                element.removeChild(element.lastChild);
+              }
+
+              return element;
+            }
+
+            function updateAttributes(element, newProps) {
+              const existingProps = Array.from(element.attributes).reduce((acc, attr) => {
+                acc[attr.name] = attr.value;
+                return acc;
+              }, {});
+
+              // Remove outdated attributes
+              Object.keys(existingProps).forEach(key => {
+                if (!newProps || !(key in newProps)) {
+                  element.removeAttribute(key);
+                }
+              });
+
+              // Update/add attributes and event handlers
+              Object.entries(newProps || {}).forEach(([key, value]) => {
+                if (key.startsWith('on')) {
+                  const eventType = key.slice(2).toLowerCase();
+                  element[`on${eventType}`] = value;
                 } else {
                   element.setAttribute(key, value);
                 }
               });
-
-              // Render children recursively
-              (children || []).forEach((child) => render(child, element, rootContainer));
-
-              if (container === rootContainer) {
-                rootContainer.innerHTML = '';
-              }
-
-              return container.appendChild(element);
             }
 
             function effect(fn) {

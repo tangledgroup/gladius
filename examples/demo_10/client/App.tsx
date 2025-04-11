@@ -24,7 +24,7 @@ const TodoHeader = (props) => {
         class="input"
         placeholder="Title..."
         value={newTodoItem()}
-        onkeyup={(e) => {
+        onchange={(e) => {
           // console.log('!', e.target.value);
           setNewTodoItem(e.target.value);
         }} />
