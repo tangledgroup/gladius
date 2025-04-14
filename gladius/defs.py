@@ -37,6 +37,7 @@ VOID_TAGS: set[str] = {
     'wbr',
 }
 
+
 CONTAINER_TAGS: set[str] = {
     'a',
     'abbr',
