@@ -29,4 +29,5 @@ _cache = {}
 def __getattr__(name):
     if name not in _cache:
         _cache[name] = MockObject(name=name)
+
     return _cache[name]

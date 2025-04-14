@@ -1,6 +1,5 @@
 __all__ = [
-    # 'GunicornApp',
-    'element_middleware',
+    # 'element_middleware',
     'html_middleware',
     'json_middleware',
     'aiohttp_middlewares',
@@ -14,19 +13,19 @@ import sys
 from aiohttp import web
 from aiohttp.web import middleware
 
-from .element import Element
+# from .element import Element
 
 
-@middleware
-async def element_middleware(request, handler):
-    resp = await handler(request)
-
-    if isinstance(resp, Element):
-        text: str = resp.render()
-        headers = {'content-type': 'text/html'}
-        resp = web.Response(status=200, text=text, headers=headers)
-
-    return resp
+# @middleware
+# async def element_middleware(request, handler):
+#     resp = await handler(request)
+#
+#     if isinstance(resp, Element):
+#         text: str = resp.render()
+#         headers = {'content-type': 'text/html'}
+#         resp = web.Response(status=200, text=text, headers=headers)
+#
+#     return resp
 
 
 @middleware
@@ -51,7 +50,7 @@ async def json_middleware(request, handler):
 
 
 aiohttp_middlewares = [
-    element_middleware,
+    # element_middleware,
     html_middleware,
     json_middleware,
 ]
