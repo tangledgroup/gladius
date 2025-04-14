@@ -23,18 +23,20 @@ const TodoHeader = (props) => {
       <input type="text"
         class="input"
         placeholder="Title..."
-        value={newTodoItem()}
-        onchange={(e) => {
-          // console.log('!', e.target.value);
-          setNewTodoItem(e.target.value);
-        }} />
+        // value={newTodoItem()}
+        // onchange={(e) => {
+        //   // console.log('!', e.target.value);
+        //   setNewTodoItem(e.target.value);
+        // }}
+      />
 
       <button class="btn btn-primary"
-        onclick={(e) => {
-          console.log(e);
-          setTodoItems([...todoItems(), newTodoItem()]);
-          setNewTodoItem('');
-        }}>
+        // onclick={(e) => {
+        //   console.log(e);
+        //   setTodoItems([...todoItems(), newTodoItem()]);
+        //   setNewTodoItem('');
+        // }}
+        >
         <i data-feather="plus"></i>
       </button>
     </div>
