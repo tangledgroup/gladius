@@ -50,12 +50,10 @@ def TodoItem(props):
     return el
 
 
-# with h.App() as app:
-#     print(app)
+with h.App() as app:
+    print(app)
+
 app = h.App()
-print(f'{callable(app)=}')
-from contextlib import AbstractContextManager, contextmanager
-print(f'{isinstance(app, AbstractContextManager)=}')
 print(app)
 
 html = render(app)
