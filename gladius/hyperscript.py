@@ -1,8 +1,9 @@
-__all__ = ['h', 'render', 'register']
+__all__ = ['h', 'render', 'define']
 
 import json
 import inspect
-from typing import Any, Union, Callable, TypedDict
+from contextlib import AbstractContextManager, contextmanager
+from typing import Any, Optional, Union, Callable, TypedDict, Iterator
 
 from .defs import SVG_TAGS, VOID_TAGS, CONTAINER_TAGS
 
@@ -13,63 +14,96 @@ class HNode(TypedDict):
     children: list[Union[str, 'HNode']]
 
 
-'''
-def h(type: str | Callable[[dict[str, Any]], HNode], props: dict[str, Any] | None, *children) -> HNode:
-    return HNode(
-        type=type,
-        props=props,
-        children=children, # type: ignore
-    )
-'''
 class H:
-    registered_elements: dict[str, Any]
-
+    defined_elements: dict[str, Any]
+    element_scopes: list[HNode]  # used for elements using `with` statement
 
     def __init__(self):
-        self.registered_elements = {}
+        self.defined_elements = {}
+        self.element_scopes = []
 
 
     def __call__(self, type: str | Callable[[dict[str, Any]], HNode], props: dict[str, Any] | None, *children) -> HNode:
-        return HNode(
+        node = HNode(
             type=type,
             props=props,
-            children=children, # type: ignore
+            children=list(children),
         )
 
+        if self.element_scopes:
+            scope: HNode = self.element_scopes[-1]
+            scope['children'].append(node)
 
-    def __getattr__(self, attr: str) -> Callable[[dict[str, Any] | None], HNode]:
-        def _code_fn(props: dict[str, Any] | None=None, *children) -> HNode:
+        return node
+
+
+    def __getattr__(self, attr: str) -> Any:
+        print(f'??? [0] {attr=}')
+
+        @contextmanager
+        def _code_fn(props: Optional[dict[str, Any]]=None, *children) -> Iterator[HNode]:
+            print(f'??? [1] {attr=}')
             type: str | Callable[[dict[str, Any]], HNode]
 
-            if attr in self.registered_elements:
-                type = self.registered_elements[attr]
+            if attr in self.defined_elements:
+                type = self.defined_elements[attr]
             else:
                 type = attr
 
-            return HNode(
+            node = HNode(
                 type=type,
                 props=props,
-                children=children, # type: ignore
+                children=list(children),
             )
+            print(f'!!! {attr=} {node=}')
+
+            if self.element_scopes:
+                scope: HNode = self.element_scopes[-1]
+                scope['children'].append(node)
+
+            self.element_scopes.append(node)
+
+            try:
+                yield node
+            finally:
+                self.element_scopes.pop()
 
         return _code_fn
 
 
-    def register(self, fn: Callable):
-        self.registered_elements[fn.__name__] = fn
+    def define(self, fn: Callable):
+        self.defined_elements[fn.__name__] = fn
         return fn
 
 
 h = H()
-register = h.register
+define = h.define
 
 
-def render(node: HNode, ident: int=0) -> str:
-    type: str | Callable[[dict[str, Any]], HNode] = node['type']
-    props: dict[str, Any] | None = node['props']
+def render(node: str | HNode | AbstractContextManager, ident: int=0) -> str:
+    type: str | Callable[[dict[str, Any]], HNode]
+    props: dict[str, Any] | None
+    children: list[Union[str, HNode]]
     rendered_props: list[str] | str
     rendered_node: str
     ident_str: str = " " * (ident * 2)
+    text_ident_str: str = " " * ((ident + 1) * 2)
+
+    if isinstance(node, str):
+        return f'{text_ident_str}{node}'
+    elif isinstance(node, AbstractContextManager):
+        with node as n:
+            type = n['type']
+            props = n['props']
+            children = n['children']
+    else:
+        type = node['type']
+        props = node['props']
+        children = node['children']
+
+    print(f'{type}')
+    print(f'{props}')
+    print(f'{children}')
 
     if props:
         rendered_props = [f'{k}={json.dumps(v)}' for k, v in props.items()]
@@ -80,13 +114,11 @@ def render(node: HNode, ident: int=0) -> str:
     if type in VOID_TAGS:
         rendered_node = f'{ident_str}<{type} {rendered_props}/>'
     elif type in SVG_TAGS or type in CONTAINER_TAGS:
-        children: list[Union[str, HNode]] = node['children']
         rendered_children: list[str] | str
-        text_ident_str: str = " " * ((ident + 1) * 2)
 
         if children:
             rendered_children = [
-                render(n, ident=ident + 1) if isinstance(n, dict) else f'{text_ident_str}{n}'
+                render(n, ident=ident + 1)
                 for n in children
             ]
 
@@ -94,6 +126,9 @@ def render(node: HNode, ident: int=0) -> str:
             rendered_node = f'{ident_str}<{type} {rendered_props}>\n{rendered_children}\n{ident_str}</{type}>'
         else:
             rendered_node = f'{ident_str}<{type} {rendered_props}></{type}>'
+    elif isinstance(node, AbstractContextManager):
+        print('!' * 80)
+        raise ValueError(node)
     elif callable(type):
         # check if element expects props
         args_names: list[str] = inspect.getargs(type.__code__).args

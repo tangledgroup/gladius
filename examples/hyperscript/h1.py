@@ -1,13 +1,13 @@
-from gladius import h, render, register
+from gladius import h, render, define
 from rich import print
 
 
-@register
+@define
 def App():
     return h.Todo()
 
 
-@register
+@define
 def Todo():
     return h.div({'class': 'flex flex-col w-full h-screen justify-center items-center'},
         h.div(None,
@@ -15,7 +15,7 @@ def Todo():
             h.TodoList()))
 
 
-@register
+@define
 def TodoHeader():
     return h.div({'class': 'flex'},
         h.input({'type': 'text', 'class': 'input', 'placeholder': 'Title...'}),
@@ -23,7 +23,7 @@ def TodoHeader():
             h.i({'data-feather': 'plus'})))
 
 
-@register
+@define
 def TodoList():
     return h.ul({'class': 'w-full list bg-base-100 rounded-box shadow-md'},
         h.TodoItem({'i': 0}),
@@ -32,7 +32,7 @@ def TodoList():
         h.TodoItem({'i': 3}))
 
 
-@register
+@define
 def TodoItem(props):
     return h.li({'class': 'flex list-row items-center justify-between', 'key': f'todo-item-{props["i"]}'},
         h.div({'class': 'flex-1'}, 'Dio Lupa'),
