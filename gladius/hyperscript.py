@@ -36,6 +36,18 @@ class HNode:
             raise exc_val
 
 
+    def __getitem__(self, key: str) -> 'HNode':
+        global h
+        assert isinstance(key, str)
+        assert key in (SVG_TAGS | VOID_TAGS | CONTAINER_TAGS) or key in h.defined_elements
+
+        for n in self.children:
+            if n.type == key: # type: ignore
+                return n
+
+        raise KeyError(f'Missing: {key!r}')
+
+
 @dataclass(init=False)
 class Text(HNode):
     def __init__(self, children):
@@ -125,7 +137,7 @@ def render(node: str | HNode, ident: int=0) -> str:
     ident_str: str = " " * (ident * 2)
     text_ident_str: str = " " * ((ident + 1) * 2)
 
-    print('!', node)
+    # print('!', node)
     if isinstance(node, str):
         return f'{text_ident_str}{node}'
     elif isinstance(node, HNode) and node.type == 'Text':
@@ -157,8 +169,8 @@ def render(node: str | HNode, ident: int=0) -> str:
         else:
             rendered_node = f'{ident_str}<{type} {rendered_props}></{type}>'
 
-        if type == 'p':
-            print('###', rendered_node)
+        # if type == 'p':
+        #     print('###', rendered_node)
     elif callable(type):
         # check if element expects props
         args_names: list[str] = inspect.getargs(type.__code__).args

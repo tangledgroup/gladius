@@ -13,19 +13,19 @@ import sys
 from aiohttp import web
 from aiohttp.web import middleware
 
-# from .element import Element
+from .hyperscript import HNode, render
 
 
-# @middleware
-# async def element_middleware(request, handler):
-#     resp = await handler(request)
-#
-#     if isinstance(resp, Element):
-#         text: str = resp.render()
-#         headers = {'content-type': 'text/html'}
-#         resp = web.Response(status=200, text=text, headers=headers)
-#
-#     return resp
+@middleware
+async def hyperscript_middleware(request, handler):
+    resp = await handler(request)
+
+    if isinstance(resp, HNode):
+        text: str = render(resp)
+        headers = {'content-type': 'text/html'}
+        resp = web.Response(status=200, text=text, headers=headers)
+
+    return resp
 
 
 @middleware
@@ -50,7 +50,7 @@ async def json_middleware(request, handler):
 
 
 aiohttp_middlewares = [
-    # element_middleware,
+    hyperscript_middleware,
     html_middleware,
     json_middleware,
 ]

@@ -1,6 +1,10 @@
 # https://github.com/picocss/examples/blob/master/v2-html/index.html
+import json
+from dataclasses import asdict
+
+from rich import print
 from aiohttp import web
-from gladius import h, define, render, run_app
+from gladius import h, render, run_app
 
 
 with h.html({'lang': 'en'}) as html_root:
@@ -319,6 +323,8 @@ with h.html({'lang': 'en'}) as html_root:
         h.script({'src': 'js/minimal-theme-switcher.js'})
         h.script({'src': 'js/modal.js'})
 
+# serialize hyperscript to json
+print(json.dumps(html_root, default=asdict))
 
 # server
 app = web.Application()
