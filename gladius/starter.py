@@ -1,16 +1,25 @@
 import os
 import sys
 import shutil
+from random import randint
 from types import ModuleType
-from typing import Any, Union
+from typing import Any, Union, Callable
 
 from aiohttp import web
 
 from .aiohttp import aiohttp_middlewares
 from .hyperscript import h, HNode
-from .imports import local_import_tracker
-from .utils import split_name_and_version
-from .npm import install_npm_packages
+from .utils import get_gladius_cache, split_name_and_version
+from .npm import install_npm_packages, exec_esbuild_command
+from .imports import (
+    JsModuleType,
+    TsModuleType,
+    JsxModuleType,
+    TsxModuleType,
+    # CssModuleType,
+    # WasmModuleType,
+    local_import_tracker,
+)
 from . import client
 
 
@@ -108,9 +117,15 @@ def create_app(
 
             with page['head']:
                 if ext == '.js':
-                    v: str = name.replace('@', '').replace('/', '_').replace('-', '_').replace('.', '_')
+                    v: str = (
+                        name.replace('@', '')
+                            .replace('/', '_')
+                            .replace('-', '_')
+                            .replace('.', '_')
+                    )
+
                     k: str = dest_path
-                    h.script({'type': 'module'}, f"import * as {v} from '/{k}'; window.{v} = {v};")
+                    h.script({'type': 'module', 'defer': None}, f"import * as {v} from '/{k}'; window.{v} = {v};")
                 elif ext == '.css':
                     h.link({'rel': 'stylesheet', 'href': '/' + dest_path})
 
@@ -153,6 +168,241 @@ def create_app(
         dest_dirpath, _ = os.path.split(dest_path)
         os.makedirs(dest_dirpath, exist_ok=True)
         shutil.copy(src_path, dest_path)
+
+    #
+    # ready
+    #
+    def embed_module(n):
+        global h
+
+        if isinstance(n, (JsModuleType, TsModuleType, JsxModuleType, TsxModuleType)):
+            embed_js_module(n)
+        else:
+            h.script({'type': 'text/python', 'defer': None}, n)
+
+    def embed_callable(n):
+        global h
+        h.script({'type': 'text/python', 'defer': None}, n)
+
+    def embed_js_module(n):
+        global h
+        gladius_cache_path, gladius_cache = get_gladius_cache()
+        build_dir: str = gladius_cache['build_dir']
+        # print(f'{gladius_cache=} {build_dir=}')
+
+        path: str = os.path.relpath(n.path)
+        outfile: str = os.path.join(os.getcwd(), 'static', '__app__', path)
+        ext: str = os.path.splitext(path)[1]
+
+        if ext in {'.js', '.ts', '.jsx', '.tsx'}:
+            outfile = os.path.splitext(outfile)[0] + '.js'
+        else:
+            raise ValueError(f'Unsupported extension: {ext}')
+
+        exec_esbuild_command(build_dir, path, outfile)
+        bundle_path: str = '/' + os.path.relpath(outfile)
+
+        with page['head']:
+            h.script(
+                {'type': 'text/javascript'},
+                '''
+                    const observers = [];
+
+                    function h(type, props, ...children) {
+                        return { type, props, children };
+                    }
+
+                    function effect(fn) {
+                        const execute = () => {
+                        observers.push(execute);
+
+                        try {
+                            fn();
+                        } finally {
+                            observers.pop();
+                        }
+                        };
+
+                        execute();
+                    }
+
+                    function signal(value) {
+                        const subscribers = new Set();
+
+                        const getValue = () => {
+                        const current = observers[observers.length - 1];
+
+                        if (current) {
+                            subscribers.add(current);
+                        }
+
+                        return value;
+                        };
+
+                        const setValue = (newValue) => {
+                        value = newValue;
+
+                        for (const subscriber of subscribers) {
+                            subscriber();
+                        }
+                        };
+
+                        return [getValue, setValue];
+                    }
+
+                    /*
+                    function render(vnode, container) {
+                        // Clear container before rendering new content
+                        container.innerHTML = '';
+
+                        // Create DOM elements from vnode recursively
+                        const createElement = (node) => {
+                            if (typeof node === 'string' || typeof node === 'number') {
+                                return document.createTextNode(node.toString());
+                            }
+
+                            if (typeof node.type === 'function') {
+                                // Handle component functions
+                                const props = { ...node.props, children: node.children };
+                                const componentVnode = node.type(props);
+                                return createElement(componentVnode);
+                            }
+
+                            // Create regular DOM element
+                            const element = document.createElement(node.type);
+
+                            // Set attributes and event handlers
+                            if (node.props) {
+                                Object.entries(node.props).forEach(([key, value]) => {
+                                    if (key.startsWith('on')) {
+                                        // Handle events (e.g., onClick)
+                                        element[key.toLowerCase()] = value;
+                                    } else {
+                                        element.setAttribute(key, value);
+                                    }
+                                });
+                            }
+
+                            // Recursively render children
+                            node.children.forEach(child => {
+                                element.appendChild(createElement(child));
+                            });
+
+                            return element;
+                        };
+
+                        // Start rendering process
+                        const element = createElement(vnode);
+                        container.appendChild(element);
+                    }
+                    */
+
+                    function render(vnode, container) {
+                        const newNode = createElement(vnode);
+                        const oldNode = container.firstChild;
+                        if (oldNode) {
+                            morph(oldNode, newNode);
+                        } else {
+                            container.appendChild(newNode);
+                        }
+                    }
+
+                    function createElement(node) {
+                        if (typeof node === 'string' || typeof node === 'number') {
+                            return document.createTextNode(node.toString());
+                        }
+                        if (typeof node.type === 'function') {
+                            const props = { ...node.props, children: node.children };
+                            const componentVnode = node.type(props);
+                            return createElement(componentVnode);
+                        }
+                        const element = document.createElement(node.type);
+                        if (node.props) {
+                            Object.entries(node.props).forEach(([key, value]) => {
+                                if (key.startsWith('on')) {
+                                    element[key.toLowerCase()] = value;
+                                } else {
+                                    element.setAttribute(key, value);
+                                }
+                            });
+                        }
+                        element._props = node.props; // Store props for morphing
+                        node.children.forEach(child => element.appendChild(createElement(child)));
+                        return element;
+                    }
+
+                    function morph(oldNode, newNode) {
+                        if (oldNode.nodeType !== newNode.nodeType ||
+                            (oldNode.nodeType === Node.ELEMENT_NODE && oldNode.tagName !== newNode.tagName)) {
+                            oldNode.replaceWith(newNode);
+                            return;
+                        }
+                        if (oldNode.nodeType === Node.TEXT_NODE) {
+                            if (oldNode.textContent !== newNode.textContent) {
+                                oldNode.textContent = newNode.textContent;
+                            }
+                            return;
+                        }
+                        // Update attributes
+                        const oldAttrs = oldNode.attributes;
+                        const newAttrs = newNode.attributes;
+                        for (let i = oldAttrs.length - 1; i >= 0; i--) {
+                            const { name } = oldAttrs[i];
+                            if (!newAttrs[name]) oldNode.removeAttribute(name);
+                        }
+                        for (const { name, value } of newAttrs) {
+                            if (oldNode.getAttribute(name) !== value) oldNode.setAttribute(name, value);
+                        }
+                        // Update event handlers from props
+                        const oldProps = oldNode._props || {};
+                        const newProps = newNode._props || {};
+                        Object.keys(oldProps).forEach(key => {
+                            if (key.startsWith('on') && !newProps[key]) {
+                                oldNode[key.toLowerCase()] = null;
+                            }
+                        });
+                        Object.keys(newProps).forEach(key => {
+                            if (key.startsWith('on')) {
+                                const newValue = newProps[key];
+                                const oldValue = oldProps[key];
+                                if (newValue !== oldValue) {
+                                    oldNode[key.toLowerCase()] = newValue;
+                                }
+                            }
+                        });
+                        // Morph children
+                        const oldChildren = Array.from(oldNode.childNodes);
+                        const newChildren = Array.from(newNode.childNodes);
+                        const maxLength = Math.max(oldChildren.length, newChildren.length);
+                        for (let i = 0; i < maxLength; i++) {
+                            const oldChild = oldChildren[i];
+                            const newChild = newChildren[i];
+                            if (oldChild && newChild) {
+                                morph(oldChild, newChild);
+                            } else if (newChild) {
+                                oldNode.appendChild(newChild);
+                            } else if (oldChild) {
+                                oldNode.removeChild(oldChild);
+                            }
+                        }
+                    }
+                '''
+            )
+
+            h.script(
+                {'type': 'module', 'defer': None},
+                f"import * as _ from '{bundle_path}?v={randint(0, 2 ** 32)}';"
+            )
+
+    if isinstance(ready, ModuleType):
+        embed_module(ready)
+    elif isinstance(ready, Callable):
+        embed_callable(ready)
+    elif isinstance(ready, list):
+        assert all([isinstance(n, ModuleType) for n in ready])
+
+        for n in ready:
+            embed_module(n)
 
     #
     # app

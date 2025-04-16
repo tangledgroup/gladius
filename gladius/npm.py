@@ -156,6 +156,14 @@ def install_npm_packages(dest_npm_path: str, npm_packages: dict[str, Any]) -> tu
     gladius_cache['npm_packages'] = npm_packages
     save_gladius_cache(gladius_cache)
 
+    # save tsconfig
+    tsconfig_path = create_or_update_tsconfig({
+        'compilerOptions': {
+            'baseUrl': os.path.join(build_dir, 'node_modules')
+        }
+    })
+    print('create/update tsconfig', tsconfig_path)
+
     return copy_paths, compile_paths
 
 
@@ -251,42 +259,7 @@ def compile_npm_package(dest_npm_path: str, build_dir: str, workspace_name: str,
             os.makedirs(dest_dirpath, exist_ok=True)
 
         dest_path = os.path.join(dest_dirpath, n)
-
-        cmd = [
-            'esbuild',
-            src_path,
-            '--bundle',
-            '--minify',
-            '--sourcemap',
-            f'--outfile={dest_path}',
-            '--format=esm',
-            '--platform=node',
-            '--loader:.js=js',
-            '--loader:.ts=ts',
-            '--loader:.css=css',
-            '--loader:.woff=file',
-            '--loader:.woff2=file',
-            '--loader:.ttf=file',
-            '--loader:.svg=file',
-            '--loader:.wasm=file',
-        ]
-
-        p = npx( # type: ignore
-            cmd,
-            cwd=build_dir,
-            stdout=PIPE,
-            stderr=PIPE,
-            return_completed_process=True,
-        )
-
-        if p.returncode != 0:
-            print('compile_npm_package:', p)
-            print('stdout:')
-            print(p.stdout)
-            print('stderr:')
-            print(p.stderr)
-
-        assert p.returncode == 0
+        exec_esbuild_command(build_dir, src_path, dest_path)
 
         if pkg_name not in paths:
             paths[pkg_name] = {}
@@ -294,3 +267,53 @@ def compile_npm_package(dest_npm_path: str, build_dir: str, workspace_name: str,
         paths[pkg_name][os.path.join(name, n)] = os.path.relpath(dest_path)
 
     return paths
+
+
+def exec_npm_command(build_dir: str, cmd: list[str]):
+    # print(f'{build_dir=} {cmd=}')
+
+    p = npx( # type: ignore
+        cmd,
+        cwd=build_dir,
+        stdout=PIPE,
+        stderr=PIPE,
+        return_completed_process=True,
+    )
+
+    if p.returncode != 0:
+        print('exec_npm_command:', p)
+        print('stdout:')
+        print(p.stdout)
+        print('stderr:')
+        print(p.stderr)
+
+    assert p.returncode == 0
+
+
+def exec_esbuild_command(build_dir: str, src_path: str, dest_path: str):
+    # print(f'{exec_esbuild_command=} {src_path=} {dest_path=}')
+
+    cmd = [
+        'esbuild',
+        src_path,
+        '--bundle',
+        '--minify',
+        '--sourcemap',
+        f'--outfile={dest_path}',
+        '--format=esm',
+        '--platform=node',
+        '--jsx-factory=h',
+        # '--jsx-fragment=Fragment',
+        '--loader:.js=js',
+        '--loader:.ts=ts',
+        '--loader:.jsx=jsx',
+        '--loader:.tsx=tsx',
+        '--loader:.css=css',
+        '--loader:.woff=file',
+        '--loader:.woff2=file',
+        '--loader:.ttf=file',
+        '--loader:.svg=file',
+        '--loader:.wasm=file',
+    ]
+
+    return exec_npm_command(build_dir, cmd)

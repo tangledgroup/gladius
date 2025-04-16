@@ -5,7 +5,7 @@ import inspect
 from dataclasses import dataclass
 from typing import Any, Optional, Union, Callable
 
-from .defs import SVG_TAGS, VOID_TAGS, CONTAINER_TAGS
+from .defs import SVG_TAGS, VOID_TAGS, CONTAINER_TAGS, BOOLEAN_PROPERTIES
 
 
 @dataclass(init=False)
@@ -134,8 +134,8 @@ def render(node: str | HNode, ident: int=0) -> str:
     children: list[Union[str, HNode]]
     rendered_props: Union[list[str], str]
     rendered_node: str
-    ident_str: str = " " * (ident * 2)
-    text_ident_str: str = " " * ((ident + 1) * 2)
+    ident_str: str = ' ' * (ident * 2)
+    text_ident_str: str = ' ' * ((ident + 1) * 2)
 
     # print('!', node)
     if isinstance(node, str):
@@ -148,7 +148,11 @@ def render(node: str | HNode, ident: int=0) -> str:
         children = node.children
 
     if props:
-        rendered_props = [f'{k}={json.dumps(v)}' for k, v in props.items()]
+        rendered_props = [
+            k if k in BOOLEAN_PROPERTIES and v is None else f'{k}={json.dumps(v)}'
+            for k, v in props.items()
+        ]
+
         rendered_props = ' '.join(rendered_props)
     else:
         rendered_props = ''

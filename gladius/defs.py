@@ -1,4 +1,9 @@
-__all__ = ['VOID_TAGS', 'CONTAINER_TAGS']
+__all__ = [
+    'SVG_TAGS',
+    'VOID_TAGS',
+    'CONTAINER_TAGS',
+    'BOOLEAN_PROPERTIES',
+]
 
 
 SVG_TAGS: set[str] = {
@@ -142,3 +147,30 @@ CONTAINER_TAGS: set[str] = {
 
     *SVG_TAGS,
 }
+
+BOOLEAN_PROPERTIES: list[str] = [
+    'allowfullscreen',
+    'async',
+    'autofocus',
+    'autoplay',
+    'checked',
+    'controls',
+    'default',
+    'defer',
+    'disabled',
+    'formnovalidate',
+    'hidden',
+    'ismap',
+    'loop',
+    'multiple',
+    'muted',
+    'nomodule',
+    'novalidate',
+    'open',
+    'playsinline',
+    'readonly',
+    'required',
+    'reversed',
+    'selected',
+    'sortable',
+]
