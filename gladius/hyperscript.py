@@ -133,7 +133,7 @@ def render(node: str | HNode, ident: int=0) -> str:
     props: Optional[dict[str, Any]]
     children: list[Union[str, HNode]]
     rendered_props: Union[list[str], str]
-    rendered_node: str
+    rendered_node: Union[list[str], str]
     ident_str: str = ' ' * (ident * 2)
     text_ident_str: str = ' ' * ((ident + 1) * 2)
 
@@ -163,18 +163,28 @@ def render(node: str | HNode, ident: int=0) -> str:
         rendered_children: Union[list[str], str]
 
         if children:
-            rendered_children = [
-                render(n, ident=ident + 1)
-                for n in children
-            ]
+            if type == 'script' and props and props.get('type') == 'text/python':
+                assert all(isinstance(n, str) for n in children)
+                rendered_children = children # type: ignore
+            else:
+                rendered_children = [
+                    render(n, ident=ident + 1)
+                    for n in children
+                ]
 
             rendered_children = '\n'.join(rendered_children)
-            rendered_node = f'{ident_str}<{type} {rendered_props}>\n{rendered_children}\n{ident_str}</{type}>'
-        else:
-            rendered_node = f'{ident_str}<{type} {rendered_props}></{type}>'
 
-        # if type == 'p':
-        #     print('###', rendered_node)
+            if rendered_props:
+                rendered_node = f'{ident_str}<{type} {rendered_props}>\n{rendered_children}\n{ident_str}</{type}>'
+            else:
+                rendered_node = f'{ident_str}<{type}>\n{rendered_children}\n{ident_str}</{type}>'
+        else:
+            if rendered_props:
+                rendered_node = f'{ident_str}<{type} {rendered_props}></{type}>'
+            else:
+                rendered_node = f'{ident_str}<{type}></{type}>'
+
+        rendered_node = ''.join(rendered_node)
     elif callable(type):
         # check if element expects props
         args_names: list[str] = inspect.getargs(type.__code__).args
@@ -189,6 +199,9 @@ def render(node: str | HNode, ident: int=0) -> str:
         rendered_node = render(type_node, ident=ident)
     else:
         raise ValueError(f'Unsupported node type: {type!r}')
+
+    if type == 'html':
+        rendered_node = '<!DOCTYPE html>\n' + rendered_node
 
     return rendered_node
 

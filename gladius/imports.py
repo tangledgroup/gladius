@@ -1,4 +1,5 @@
 __all__ = [
+    'ClientModuleType',
     'JsModuleType',
     'TsModuleType',
     'JsxModuleType',
@@ -21,37 +22,41 @@ project_root = Path.cwd().resolve()
 #
 # Module type implementations
 #
-class JsModuleType(ModuleType):
+class ClientModuleType(ModuleType):
+    pass
+
+
+class JsModuleType(ClientModuleType):
     def __init__(self, name, path):
         super().__init__(name)
         self.path = path
 
 
-class TsModuleType(ModuleType):
+class TsModuleType(ClientModuleType):
     def __init__(self, name, path):
         super().__init__(name)
         self.path = path
 
 
-class JsxModuleType(ModuleType):
+class JsxModuleType(ClientModuleType):
     def __init__(self, name, path):
         super().__init__(name)
         self.path = path
 
 
-class TsxModuleType(ModuleType):
+class TsxModuleType(ClientModuleType):
     def __init__(self, name, path):
         super().__init__(name)
         self.path = path
 
 
-class CssModuleType(ModuleType):
+class CssModuleType(ClientModuleType):
     def __init__(self, name, path):
         super().__init__(name)
         self.path = path
 
 
-class WasmModuleType(ModuleType):
+class WasmModuleType(ClientModuleType):
     def __init__(self, name, path):
         super().__init__(name)
         self.path = path

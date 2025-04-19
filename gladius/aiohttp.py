@@ -1,5 +1,5 @@
 __all__ = [
-    # 'element_middleware',
+    'hyperscript_middleware',
     'html_middleware',
     'json_middleware',
     'aiohttp_middlewares',

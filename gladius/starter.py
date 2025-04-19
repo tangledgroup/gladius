@@ -20,7 +20,7 @@ from .imports import (
     # WasmModuleType,
     local_import_tracker,
 )
-from . import client
+from . import _client_gladius
 
 
 DEFAULT_APP_INIT_ARGS = {
@@ -82,6 +82,7 @@ def create_app(
             h.meta({'name': 'viewport', 'content': 'width=device-width, initial-scale=1'})
             h.title({}, title)
             h.meta({'name': 'description', 'content': description})
+            # h.script({'type': 'text/javascript', 'src': '/static/__app__/gladius.js'})
 
         with h.body():
             pass
@@ -93,8 +94,7 @@ def create_app(
     copy_paths, compile_paths = install_npm_packages(dest_npm_path, npm)
 
     # copied
-    print(f'{copy_paths=}')
-
+    # print(f'{copy_paths=}')
     for pkg_name, src_dest_path_map in copy_paths.items():
         for src_path, dest_path in src_dest_path_map.items():
             dirpath, filename = os.path.split(dest_path)
@@ -107,8 +107,7 @@ def create_app(
                     h.link({'rel': 'stylesheet', 'href': '/' + dest_path})
 
     # compiled
-    print(f'{compile_paths=}')
-
+    # print(f'{compile_paths=}')
     for pkg_name, src_dest_path_map in compile_paths.items():
         for src_path, dest_path in src_dest_path_map.items():
             name, ver = split_name_and_version(pkg_name)
@@ -130,8 +129,12 @@ def create_app(
                     h.link({'rel': 'stylesheet', 'href': '/' + dest_path})
 
     # copy gladius client-side libs
-    src_path: str = client.__file__
+    src_path: str = _client_gladius.__file__
     dest_path: str = os.path.join(app_path, 'gladius.py')
+    shutil.copy(src_path, dest_path)
+
+    src_path: str = os.path.join(os.path.split(_client_gladius.__file__)[0], '_client_gladius.js')
+    dest_path: str = os.path.join(app_path, 'gladius.js')
     shutil.copy(src_path, dest_path)
 
     # copy client app modules
@@ -178,11 +181,9 @@ def create_app(
         if isinstance(n, (JsModuleType, TsModuleType, JsxModuleType, TsxModuleType)):
             embed_js_module(n)
         else:
-            h.script({'type': 'text/python', 'defer': None}, n)
-
-    def embed_callable(n):
-        global h
-        h.script({'type': 'text/python', 'defer': None}, n)
+            with page['head']:
+                source = f'import sys\nsys.path = ["static/__app__"]\nimport {n.__name__}'
+                h.script({'type': 'text/python', 'defer': None}, source)
 
     def embed_js_module(n):
         global h
@@ -203,191 +204,7 @@ def create_app(
         bundle_path: str = '/' + os.path.relpath(outfile)
 
         with page['head']:
-            h.script(
-                {'type': 'text/javascript'},
-                '''
-                    const observers = [];
-
-                    function h(type, props, ...children) {
-                        return { type, props, children };
-                    }
-
-                    function effect(fn) {
-                        const execute = () => {
-                        observers.push(execute);
-
-                        try {
-                            fn();
-                        } finally {
-                            observers.pop();
-                        }
-                        };
-
-                        execute();
-                    }
-
-                    function signal(value) {
-                        const subscribers = new Set();
-
-                        const getValue = () => {
-                        const current = observers[observers.length - 1];
-
-                        if (current) {
-                            subscribers.add(current);
-                        }
-
-                        return value;
-                        };
-
-                        const setValue = (newValue) => {
-                        value = newValue;
-
-                        for (const subscriber of subscribers) {
-                            subscriber();
-                        }
-                        };
-
-                        return [getValue, setValue];
-                    }
-
-                    /*
-                    function render(vnode, container) {
-                        // Clear container before rendering new content
-                        container.innerHTML = '';
-
-                        // Create DOM elements from vnode recursively
-                        const createElement = (node) => {
-                            if (typeof node === 'string' || typeof node === 'number') {
-                                return document.createTextNode(node.toString());
-                            }
-
-                            if (typeof node.type === 'function') {
-                                // Handle component functions
-                                const props = { ...node.props, children: node.children };
-                                const componentVnode = node.type(props);
-                                return createElement(componentVnode);
-                            }
-
-                            // Create regular DOM element
-                            const element = document.createElement(node.type);
-
-                            // Set attributes and event handlers
-                            if (node.props) {
-                                Object.entries(node.props).forEach(([key, value]) => {
-                                    if (key.startsWith('on')) {
-                                        // Handle events (e.g., onClick)
-                                        element[key.toLowerCase()] = value;
-                                    } else {
-                                        element.setAttribute(key, value);
-                                    }
-                                });
-                            }
-
-                            // Recursively render children
-                            node.children.forEach(child => {
-                                element.appendChild(createElement(child));
-                            });
-
-                            return element;
-                        };
-
-                        // Start rendering process
-                        const element = createElement(vnode);
-                        container.appendChild(element);
-                    }
-                    */
-
-                    function render(vnode, container) {
-                        const newNode = createElement(vnode);
-                        const oldNode = container.firstChild;
-                        if (oldNode) {
-                            morph(oldNode, newNode);
-                        } else {
-                            container.appendChild(newNode);
-                        }
-                    }
-
-                    function createElement(node) {
-                        if (typeof node === 'string' || typeof node === 'number') {
-                            return document.createTextNode(node.toString());
-                        }
-                        if (typeof node.type === 'function') {
-                            const props = { ...node.props, children: node.children };
-                            const componentVnode = node.type(props);
-                            return createElement(componentVnode);
-                        }
-                        const element = document.createElement(node.type);
-                        if (node.props) {
-                            Object.entries(node.props).forEach(([key, value]) => {
-                                if (key.startsWith('on')) {
-                                    element[key.toLowerCase()] = value;
-                                } else {
-                                    element.setAttribute(key, value);
-                                }
-                            });
-                        }
-                        element._props = node.props; // Store props for morphing
-                        node.children.forEach(child => element.appendChild(createElement(child)));
-                        return element;
-                    }
-
-                    function morph(oldNode, newNode) {
-                        if (oldNode.nodeType !== newNode.nodeType ||
-                            (oldNode.nodeType === Node.ELEMENT_NODE && oldNode.tagName !== newNode.tagName)) {
-                            oldNode.replaceWith(newNode);
-                            return;
-                        }
-                        if (oldNode.nodeType === Node.TEXT_NODE) {
-                            if (oldNode.textContent !== newNode.textContent) {
-                                oldNode.textContent = newNode.textContent;
-                            }
-                            return;
-                        }
-                        // Update attributes
-                        const oldAttrs = oldNode.attributes;
-                        const newAttrs = newNode.attributes;
-                        for (let i = oldAttrs.length - 1; i >= 0; i--) {
-                            const { name } = oldAttrs[i];
-                            if (!newAttrs[name]) oldNode.removeAttribute(name);
-                        }
-                        for (const { name, value } of newAttrs) {
-                            if (oldNode.getAttribute(name) !== value) oldNode.setAttribute(name, value);
-                        }
-                        // Update event handlers from props
-                        const oldProps = oldNode._props || {};
-                        const newProps = newNode._props || {};
-                        Object.keys(oldProps).forEach(key => {
-                            if (key.startsWith('on') && !newProps[key]) {
-                                oldNode[key.toLowerCase()] = null;
-                            }
-                        });
-                        Object.keys(newProps).forEach(key => {
-                            if (key.startsWith('on')) {
-                                const newValue = newProps[key];
-                                const oldValue = oldProps[key];
-                                if (newValue !== oldValue) {
-                                    oldNode[key.toLowerCase()] = newValue;
-                                }
-                            }
-                        });
-                        // Morph children
-                        const oldChildren = Array.from(oldNode.childNodes);
-                        const newChildren = Array.from(newNode.childNodes);
-                        const maxLength = Math.max(oldChildren.length, newChildren.length);
-                        for (let i = 0; i < maxLength; i++) {
-                            const oldChild = oldChildren[i];
-                            const newChild = newChildren[i];
-                            if (oldChild && newChild) {
-                                morph(oldChild, newChild);
-                            } else if (newChild) {
-                                oldNode.appendChild(newChild);
-                            } else if (oldChild) {
-                                oldNode.removeChild(oldChild);
-                            }
-                        }
-                    }
-                '''
-            )
+            h.script({'type': 'module', 'defer': None}, "import * as gladius from '/static/__app__/gladius.js'; window.gladius = gladius;")
 
             h.script(
                 {'type': 'module', 'defer': None},
@@ -396,8 +213,6 @@ def create_app(
 
     if isinstance(ready, ModuleType):
         embed_module(ready)
-    elif isinstance(ready, Callable):
-        embed_callable(ready)
     elif isinstance(ready, list):
         assert all([isinstance(n, ModuleType) for n in ready])
 
@@ -409,10 +224,14 @@ def create_app(
     #
     app = web.Application(middlewares=aiohttp_middlewares, **app_init_args)
 
+    async def favicon_handler(request):
+        return web.FileResponse(os.path.join(os.path.split(_client_gladius.__file__)[0], 'favicon.png'))
+
     async def page_handler(request):
         return page
 
     app.router.add_routes([
+        web.get('/favicon.ico', favicon_handler), # type: ignore
         web.get('/{tail:.*}', page_handler), # type: ignore
     ])
 

@@ -8,9 +8,9 @@ sys.modules['browser'] = mock_module
 sys.modules['javascript'] = mock_module
 
 # fake objects, used on client-side only
-from .client import window, document, bind # type: ignore # noqa
-from .client import JSObject, this, Date, JSON, Math, NULL, Number, RegExp, String, UNDEFINED # type: ignore # noqa
-from .client import export # type: ignore # noqa
+from ._client_gladius import window, document, bind # type: ignore # noqa
+from ._client_gladius import JSObject, this, Date, JSON, Math, NULL, Number, RegExp, String, UNDEFINED # type: ignore # noqa
+from ._client_gladius import export # type: ignore # noqa
 
 from .hyperscript import * # noqa
 from .imports import * # noqa

@@ -1,12 +1,19 @@
 declare const window: any;
 const { signal, effect, render } = window;
+// import { signal, effect, render } from '/static/__app__/gladius.js';
 
 const [clicked, setClicked] = signal(0);
 
-const ClickedButton = (props) => {
-  effect(() => {
-    console.log(`Clicked ${clicked()} time(s)`);
-  });
+const ClickedButton = (props: any) => {
+  // console.debug('props:', props);
+
+  // effect(() => {
+  //   console.log(`Clicked ${clicked()} time(s)`);
+
+  //   return () => {
+  //     console.log('cleanup from ClickedButton when current ClickedButton instance is released and unused anymore');
+  //   };
+  // });
 
   return (
     <div>
@@ -18,7 +25,13 @@ const ClickedButton = (props) => {
   );
 };
 
-const App = (props) => {
+const App = (props: any) => {
+  effect(() => {
+    return () => {
+      console.log('cleanup from App called when current App instance is released and unused anymore');
+    };
+  });
+
   return (
     <div class="container">
       <h1>Hello there</h1>
@@ -33,4 +46,8 @@ const App = (props) => {
 
 effect(() => {
   render(<App />, document.body);
+
+  return () => {
+    console.log('cleanup from top-level when document.body instance is released and unused anymore');
+  };
 });

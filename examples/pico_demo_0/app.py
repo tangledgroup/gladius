@@ -6,12 +6,16 @@ import client.App # type: ignore
 
 page, app = create_app(
     npm={
+        # 'spellcaster': ['dist/index.js'],
         '@picocss/pico': ['css/pico.css', 'css/pico.colors.css'],
         'lodash': ['index.js'],
-        'alpinejs': [],
+        # 'alpinejs': [],
+        'sinuous': ['src/index.js', 'src/observable.js'],
     },
-    # ready=client.app,
-    ready=client.App,
+    ready=[
+        client.app,
+        client.App,
+    ],
 )
 
 with page['head']:

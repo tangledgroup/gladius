@@ -1,7 +1,7 @@
 import os
 import shutil
 from subprocess import PIPE
-from typing import Any, Optional, Union
+from typing import Any, Optional
 from tempfile import TemporaryDirectory
 
 from tqdm import tqdm
@@ -283,9 +283,9 @@ def exec_npm_command(build_dir: str, cmd: list[str]):
     if p.returncode != 0:
         print('exec_npm_command:', p)
         print('stdout:')
-        print(p.stdout)
+        print(p.stdout.decode())
         print('stderr:')
-        print(p.stderr)
+        print(p.stderr.decode())
 
     assert p.returncode == 0
 
@@ -297,12 +297,13 @@ def exec_esbuild_command(build_dir: str, src_path: str, dest_path: str):
         'esbuild',
         src_path,
         '--bundle',
-        '--minify',
+        # '--minify',
         '--sourcemap',
         f'--outfile={dest_path}',
         '--format=esm',
         '--platform=node',
-        '--jsx-factory=h',
+        # '--jsx=transform',
+        # '--jsx-factory=esbuildH',
         # '--jsx-fragment=Fragment',
         '--loader:.js=js',
         '--loader:.ts=ts',
