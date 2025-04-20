@@ -10,7 +10,8 @@ page, app = create_app(
         '@picocss/pico': ['css/pico.css', 'css/pico.colors.css'],
         'lodash': ['index.js'],
         # 'alpinejs': [],
-        'sinuous': ['src/index.js', 'src/observable.js'],
+        # 'sinuous': ['src/index.js', 'src/observable.js'],
+        'sinuous': [],
     },
     ready=[
         client.app,

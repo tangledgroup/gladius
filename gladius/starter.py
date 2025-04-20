@@ -42,6 +42,7 @@ def create_app(
     copy_paths: dict[str, dict[str, str]]
     compile_paths: dict[str, dict[str, str]]
 
+    # check npm
     if isinstance(npm, list):
         npm = {k: [] for k in npm}
 
@@ -71,7 +72,7 @@ def create_app(
 
     root_path: str = os.getcwd()
 
-    # remove "__app__" directory, and copy with new content
+    # remove/create "__app__" directory
     app_path: str = os.path.join(root_path, static_path, '__app__')
     shutil.rmtree(app_path, ignore_errors=True)
     os.makedirs(app_path, exist_ok=True)
@@ -82,16 +83,20 @@ def create_app(
             h.meta({'name': 'viewport', 'content': 'width=device-width, initial-scale=1'})
             h.title({}, title)
             h.meta({'name': 'description', 'content': description})
-            # h.script({'type': 'text/javascript', 'src': '/static/__app__/gladius.js'})
 
         with h.body():
             pass
 
-    # npm
+    # remove/create "__npm__" directory
     dest_npm_path: str = os.path.join(root_path, static_path, '__npm__')
     shutil.rmtree(dest_npm_path, ignore_errors=True)
     os.makedirs(dest_npm_path, exist_ok=True)
     copy_paths, compile_paths = install_npm_packages(dest_npm_path, npm)
+
+    # gladius cache and tsconfig exist after `install_npm_packages`
+    gladius_cache_path, gladius_cache = get_gladius_cache()
+    build_dir: str = gladius_cache['build_dir']
+    # print(f'{gladius_cache=} {build_dir=}')
 
     # copied
     # print(f'{copy_paths=}')
@@ -128,14 +133,26 @@ def create_app(
                 elif ext == '.css':
                     h.link({'rel': 'stylesheet', 'href': '/' + dest_path})
 
-    # copy gladius client-side libs
+    # copy gladius python client-side module
     src_path: str = _client_gladius.__file__
     dest_path: str = os.path.join(app_path, 'gladius.py')
     shutil.copy(src_path, dest_path)
 
-    src_path: str = os.path.join(os.path.split(_client_gladius.__file__)[0], '_client_gladius.js')
-    dest_path: str = os.path.join(app_path, 'gladius.js')
+    # copy gladius.js client-side library in build_dir
+    src_path: str = os.path.join(os.path.split(_client_gladius.__file__)[0], '_client_gladius.ts')
+    dest_path: str = os.path.join(build_dir, '_client_gladius.ts')
     shutil.copy(src_path, dest_path)
+
+    # compile _client_gladius.ts as iife (compatible old style javascript)
+    # it is expected that _client_gladius.ts is in build_dir
+    # assert os.path.exists(os.path.join(build_dir, '_client_gladius.ts'))
+    # src_path: str = '_client_gladius.ts'
+    # dest_path: str = os.path.join(app_path, '_client_gladius.js')
+    # exec_esbuild_command(build_dir, src_path, dest_path, format='iife')
+    # bundle_path: str = '/' + os.path.relpath(dest_path)
+    #
+    # with page['head']:
+    #     h.script({'src': bundle_path})
 
     # copy client app modules
     ignored_modules_names: set[str] = (
@@ -187,9 +204,6 @@ def create_app(
 
     def embed_js_module(n):
         global h
-        gladius_cache_path, gladius_cache = get_gladius_cache()
-        build_dir: str = gladius_cache['build_dir']
-        # print(f'{gladius_cache=} {build_dir=}')
 
         path: str = os.path.relpath(n.path)
         outfile: str = os.path.join(os.getcwd(), 'static', '__app__', path)
@@ -204,13 +218,14 @@ def create_app(
         bundle_path: str = '/' + os.path.relpath(outfile)
 
         with page['head']:
-            h.script({'type': 'module', 'defer': None}, "import * as gladius from '/static/__app__/gladius.js'; window.gladius = gladius;")
+            # h.script({'type': 'module', 'defer': None}, "import * as gladius from '/static/__app__/gladius.js'; window.gladius = gladius;")
 
             h.script(
                 {'type': 'module', 'defer': None},
                 f"import * as _ from '{bundle_path}?v={randint(0, 2 ** 32)}';"
             )
 
+    '''
     if isinstance(ready, ModuleType):
         embed_module(ready)
     elif isinstance(ready, list):
@@ -218,6 +233,11 @@ def create_app(
 
         for n in ready:
             embed_module(n)
+    '''
+    assert all([isinstance(n, ModuleType) for n in ready])
+
+    for n in ready:
+        embed_module(n)
 
     #
     # app

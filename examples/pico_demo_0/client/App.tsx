@@ -1,19 +1,15 @@
-declare const window: any;
-const { signal, effect, render } = window;
-// import { signal, effect, render } from '/static/__app__/gladius.js';
+import { signal, effect, render } from 'gladius';
 
 const [clicked, setClicked] = signal(0);
 
 const ClickedButton = (props: any) => {
-  // console.debug('props:', props);
+  effect(() => {
+    console.log(`Clicked ${clicked()} time(s)`);
 
-  // effect(() => {
-  //   console.log(`Clicked ${clicked()} time(s)`);
-
-  //   return () => {
-  //     console.log('cleanup from ClickedButton when current ClickedButton instance is released and unused anymore');
-  //   };
-  // });
+    return () => {
+      console.log('cleanup from ClickedButton when current ClickedButton instance is released and unused anymore');
+    };
+  });
 
   return (
     <div>

@@ -32,6 +32,20 @@ def install_npm_packages(dest_npm_path: str, npm_packages: dict[str, Any]) -> tu
         build_dir = td.name
 
     print(f'{build_dir=}')
+
+    # save tsconfig
+    tsconfig_path = create_or_update_tsconfig({
+        'compilerOptions': {
+            'baseUrl': os.path.join(build_dir, 'node_modules'),
+            'paths': {
+                'gladius': [
+                    os.path.join(build_dir, '_client_gladius.ts'),
+                ],
+            }
+        }
+    })
+    print('create/update tsconfig', tsconfig_path)
+
     ignore = shutil.ignore_patterns('.gladius', '__npm__', '__app__')
     shutil.copytree(os.getcwd(), build_dir, ignore=ignore, dirs_exist_ok=True)
 
@@ -48,9 +62,9 @@ def install_npm_packages(dest_npm_path: str, npm_packages: dict[str, Any]) -> tu
         if p.returncode != 0:
             print('install_npm_package:', p)
             print('stdout:')
-            print(p.stdout)
+            print(p.stdout.decode()) # type: ignore
             print('stderr:')
-            print(p.stderr)
+            print(p.stderr.decode()) # type: ignore
 
         assert p.returncode == 0
 
@@ -112,9 +126,9 @@ def install_npm_packages(dest_npm_path: str, npm_packages: dict[str, Any]) -> tu
         if p.returncode != 0:
             print('install_npm_package:', p)
             print('stdout:')
-            print(p.stdout)
+            print(p.stdout.decode()) # type: ignore
             print('stderr:')
-            print(p.stderr)
+            print(p.stderr.decode()) # type: ignore
 
         assert p.returncode == 0
 
@@ -155,14 +169,6 @@ def install_npm_packages(dest_npm_path: str, npm_packages: dict[str, Any]) -> tu
     gladius_cache['build_dir'] = build_dir
     gladius_cache['npm_packages'] = npm_packages
     save_gladius_cache(gladius_cache)
-
-    # save tsconfig
-    tsconfig_path = create_or_update_tsconfig({
-        'compilerOptions': {
-            'baseUrl': os.path.join(build_dir, 'node_modules')
-        }
-    })
-    print('create/update tsconfig', tsconfig_path)
 
     return copy_paths, compile_paths
 
@@ -283,14 +289,14 @@ def exec_npm_command(build_dir: str, cmd: list[str]):
     if p.returncode != 0:
         print('exec_npm_command:', p)
         print('stdout:')
-        print(p.stdout.decode())
+        print(p.stdout.decode()) # type: ignore
         print('stderr:')
-        print(p.stderr.decode())
+        print(p.stderr.decode()) # type: ignore
 
     assert p.returncode == 0
 
 
-def exec_esbuild_command(build_dir: str, src_path: str, dest_path: str):
+def exec_esbuild_command(build_dir: str, src_path: str, dest_path: str, format: str='esm', platform: str='node', additional_cmd_args: list[str]=[]):
     # print(f'{exec_esbuild_command=} {src_path=} {dest_path=}')
 
     cmd = [
@@ -300,11 +306,11 @@ def exec_esbuild_command(build_dir: str, src_path: str, dest_path: str):
         # '--minify',
         '--sourcemap',
         f'--outfile={dest_path}',
-        '--format=esm',
-        '--platform=node',
+        f'--format={format}',
+        f'--platform={platform}',
         # '--jsx=transform',
-        # '--jsx-factory=esbuildH',
-        # '--jsx-fragment=Fragment',
+        '--jsx-factory=h',
+        '--jsx-fragment=Fragment',
         '--loader:.js=js',
         '--loader:.ts=ts',
         '--loader:.jsx=jsx',
@@ -315,6 +321,9 @@ def exec_esbuild_command(build_dir: str, src_path: str, dest_path: str):
         '--loader:.ttf=file',
         '--loader:.svg=file',
         '--loader:.wasm=file',
+        # f'--alias:gladius={os.path.join(build_dir, "_client_gladius.ts")}',
+        '--tsconfig=tsconfig.json',
+        *additional_cmd_args,
     ]
 
     return exec_npm_command(build_dir, cmd)

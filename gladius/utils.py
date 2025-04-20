@@ -49,9 +49,12 @@ def create_or_update_tsconfig(tsconfig: dict) -> str:
                 # "baseUrl": "/tmp/gladius-bpqnncpq/node_modules",
                 "jsx": "preserve",
                 "jsxFactory": "h",
-                "jsxFragmentFactory": "Fragment"
+                "jsxFragmentFactory": "Fragment",
             },
-            "include": ["**/*.ts", "**/*.tsx"]
+            "include": [
+                "**/*.ts",
+                "**/*.tsx",
+            ],
         }
 
         final_tsconfig = always_merger.merge(default_tsconfig, tsconfig)

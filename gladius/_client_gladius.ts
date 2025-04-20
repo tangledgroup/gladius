@@ -1,28 +1,25 @@
-import { h } from '/static/__npm__/sinuous/src/index.js';
-import { observable, subscribe, cleanup } from '/static/__npm__/sinuous/src/observable.js';
+import { h } from 'sinuous';
+import { observable, subscribe, cleanup } from 'sinuous/observable';
 
-/*
-function h(type, props, ...children) {
-  // `esbuild` transpiles JSX/TSX into `h` calls to create "hyperscript" nodes for declarative UI construction.
-  return { type, props, children };
-}
-*/
+declare const window: any;
+window.h = h;
+window.Fragment = null; // FIXME: implement
 
-function signal(value) {
+function signal(value: any): any {
   const o = observable(value);
 
   const getValue = () => {
     return o();
   }
 
-  const setValue = (newValue) => {
+  const setValue = (newValue: any): any => {
     o(newValue);
   }
 
   return [getValue, setValue];
 }
 
-function effect(fn) {
+function effect(fn: any): any {
   return subscribe(() => {
     const r = fn();
 
@@ -32,13 +29,7 @@ function effect(fn) {
   });
 }
 
-/*
-function render(newElement, container) {
-  container.innerHTML = '';
-  container.appendChild(newElement);
-}
-*/
-function morph(currentElement, newElement) {
+function morph(currentElement: any, newElement: any): any {
   // Replace if node types differ
   if (currentElement.nodeType !== newElement.nodeType) {
     currentElement.replaceWith(newElement);
@@ -91,7 +82,7 @@ function morph(currentElement, newElement) {
   }
 }
 
-function render(newElement, container) {
+function render(newElement: any, container: any): any {
   if (container.firstChild) {
     morph(container.firstChild, newElement);
   } else {
@@ -99,7 +90,10 @@ function render(newElement, container) {
   }
 }
 
-window.h = h;
-window.signal = signal;
-window.effect = effect;
-window.render = render;
+export {
+  h,
+  signal,
+  effect,
+  morph,
+  render,
+};
