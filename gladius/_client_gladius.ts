@@ -2,8 +2,6 @@ import { h } from 'sinuous';
 import { observable, subscribe, cleanup } from 'sinuous/observable';
 
 declare const window: any;
-window.h = h;
-window.Fragment = null; // FIXME: implement
 
 function signal(value: any): any {
   const o = observable(value);
@@ -89,6 +87,13 @@ function render(newElement: any, container: any): any {
     container.appendChild(newElement);
   }
 }
+
+window.h = h;
+window.Fragment = null; // FIXME: implement
+window.signal = signal;
+window.effect = effect;
+window.morph = morph;
+window.render = render;
 
 export {
   h,

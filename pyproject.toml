@@ -34,3 +34,14 @@ all = ["uvloop", "aiohttp", "gunicorn", "inotify", "tqdm", "nodejs-wheel"]
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+# Ruff configuration
+[tool.ruff]
+include = ["gladius/**/*", "examples/**/*"]  # Only check the 'gladius' directory
+exclude = ["**"]            # Exclude all other paths
+force-exclude = true        # Enforce exclusions even for explicitly passed files
+
+# Pyright configuration
+[tool.pyright]
+include = ["gladius", "examples/**/*"]       # Only analyze the 'gladius' directory
+exclude = ["**"]            # Ignore everything outside 'gladius'

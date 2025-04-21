@@ -20,8 +20,10 @@ from .imports import (
     # WasmModuleType,
     local_import_tracker,
 )
-from . import _client_gladius
+# from . import _client_gladius
 
+print(f'{__name__=}')
+print(f'{__file__=}')
 
 DEFAULT_APP_INIT_ARGS = {
     'client_max_size': 1024 ** 3,
@@ -67,6 +69,16 @@ def create_app(
     else:
         npm['esbuild'] = []
 
+    # check if sinuous in npm packages
+    for k, v in npm.items():
+        n, v = split_name_and_version(k)
+
+        if n == 'sinuous':
+            break
+    else:
+        npm['sinuous'] = []
+
+    # check ready
     if isinstance(ready, ModuleType):
         ready = [ready]
 
@@ -134,25 +146,25 @@ def create_app(
                     h.link({'rel': 'stylesheet', 'href': '/' + dest_path})
 
     # copy gladius python client-side module
-    src_path: str = _client_gladius.__file__
+    src_path: str = os.path.join(os.path.split(__file__)[0], '_client_gladius.py')
     dest_path: str = os.path.join(app_path, 'gladius.py')
     shutil.copy(src_path, dest_path)
 
     # copy gladius.js client-side library in build_dir
-    src_path: str = os.path.join(os.path.split(_client_gladius.__file__)[0], '_client_gladius.ts')
+    src_path: str = os.path.join(os.path.split(__file__)[0], '_client_gladius.ts')
     dest_path: str = os.path.join(build_dir, '_client_gladius.ts')
     shutil.copy(src_path, dest_path)
 
     # compile _client_gladius.ts as iife (compatible old style javascript)
     # it is expected that _client_gladius.ts is in build_dir
-    # assert os.path.exists(os.path.join(build_dir, '_client_gladius.ts'))
-    # src_path: str = '_client_gladius.ts'
-    # dest_path: str = os.path.join(app_path, '_client_gladius.js')
-    # exec_esbuild_command(build_dir, src_path, dest_path, format='iife')
-    # bundle_path: str = '/' + os.path.relpath(dest_path)
-    #
-    # with page['head']:
-    #     h.script({'src': bundle_path})
+    assert os.path.exists(os.path.join(build_dir, '_client_gladius.ts'))
+    src_path: str = '_client_gladius.ts'
+    dest_path: str = os.path.join(app_path, '_client_gladius.js')
+    exec_esbuild_command(build_dir, src_path, dest_path, format='iife')
+    bundle_path: str = '/' + os.path.relpath(dest_path)
+
+    with page['head']:
+        h.script({'src': bundle_path})
 
     # copy client app modules
     ignored_modules_names: set[str] = (
@@ -245,7 +257,8 @@ def create_app(
     app = web.Application(middlewares=aiohttp_middlewares, **app_init_args)
 
     async def favicon_handler(request):
-        return web.FileResponse(os.path.join(os.path.split(_client_gladius.__file__)[0], 'favicon.png'))
+        # return web.FileResponse(os.path.join(os.path.split(_client_gladius.__file__)[0], 'favicon.png'))
+        return web.FileResponse(os.path.join(os.path.split(__file__)[0], 'favicon.png'))
 
     async def page_handler(request):
         return page

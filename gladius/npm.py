@@ -321,7 +321,6 @@ def exec_esbuild_command(build_dir: str, src_path: str, dest_path: str, format: 
         '--loader:.ttf=file',
         '--loader:.svg=file',
         '--loader:.wasm=file',
-        # f'--alias:gladius={os.path.join(build_dir, "_client_gladius.ts")}',
         '--tsconfig=tsconfig.json',
         *additional_cmd_args,
     ]

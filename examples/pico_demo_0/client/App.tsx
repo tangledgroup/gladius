@@ -1,10 +1,10 @@
 import { signal, effect, render } from 'gladius';
 
-const [clicked, setClicked] = signal(0);
+const [count, setCount] = signal(0);
 
 const ClickedButton = (props: any) => {
   effect(() => {
-    console.log(`Clicked ${clicked()} time(s)`);
+    console.log(`Clicked ${count()} time(s)`);
 
     return () => {
       console.log('cleanup from ClickedButton when current ClickedButton instance is released and unused anymore');
@@ -13,8 +13,8 @@ const ClickedButton = (props: any) => {
 
   return (
     <div>
-      <button class="primary" onclick={e => setClicked(clicked() + 1)}>
-        {clicked() == 0 ? "Click me" : `Clicked ${clicked()} time(s)`}
+      <button class="primary" onclick={e => setCount(count() + 1)}>
+        {count() == 0 ? 'Click me' : `Clicked ${count()} time(s)`}
       </button>
       <br />
     </div>
