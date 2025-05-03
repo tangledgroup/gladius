@@ -19,4 +19,4 @@ with page['head']:
     h.meta({'name': 'color-scheme', 'content': 'light dark'})
 
 if __name__ == '__main__':
-    run_app(app, reload=False)
+    run_app(app)

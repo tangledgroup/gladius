@@ -110,8 +110,6 @@ def create_app(
     build_dir: str = gladius_cache['build_dir']
     # print(f'{gladius_cache=} {build_dir=}')
 
-    ### {
-
     # check npm_post_bundle
     is_tailwindcss: bool = False
 
@@ -122,62 +120,44 @@ def create_app(
             is_tailwindcss = True
             break
 
+    # compile/bundle css modules
     for m in ready:
         if not isinstance(m, CssModuleType):
             continue
 
-        # input_path = os.path.relpath(m.path)
-        # _, filename = os.path.split(input_path)
-        # output_path = os.path.join(static_path, '__app__', input_path)
-        # dest_dirpath = os.path.join(dest_npm_path, output_path)
-        #
-        # if not (os.path.exists(dest_dirpath) and os.path.isdir(dest_dirpath)):
-        #     os.makedirs(dest_dirpath, exist_ok=True)
-        #
-        # dest_path = os.path.join(dest_dirpath, n)
-        # exec_esbuild_command(build_dir, src_path, dest_path)
-
-        # print(f'{output_path=}')
+        cmd: list[str]
         src_path: str = os.path.relpath(m.path)
-        # dest_path: str = os.path.join(app_path, output_path)
         dest_path: str = os.path.join(app_path, src_path)
 
         if is_tailwindcss:
-            cmd = ['@tailwindcss/cli', '-i', src_path, '-o', dest_path]
+            cmd = [
+                '@tailwindcss/cli',
+                '-i',
+                src_path,
+                '-o',
+                dest_path,
+            ]
         else:
-            cmd = []
+            cmd = [
+                'esbuild',
+                src_path,
+                '--bundle',
+                # '--minify',
+                '--sourcemap',
+                f'--outfile={dest_path}',
+                '--loader:.css=css',
+                '--loader:.woff=file',
+                '--loader:.woff2=file',
+                '--loader:.ttf=file',
+                '--loader:.svg=file',
+                '--loader:.wasm=file',
+            ]
 
-        print(f'{cmd=}')
-
-        if cmd:
-            exec_npm_command(build_dir, cmd)
-
-        href = '/' + os.path.join(os.path.relpath(dest_path))
-        print(f'{href=}')
+        exec_npm_command(build_dir, cmd)
 
         with page['head']:
+            href = '/' + os.path.join(os.path.relpath(dest_path))
             h.link({'rel': 'stylesheet', 'href': href})
-
-        # href = '/' + os.path.join(os.path.relpath(output_path))
-        # print(f'{href=}')
-        # page_link = {'rel': 'stylesheet', 'href': href}
-        # page_links.append(page_link)
-
-        # # generate python placeholder/empty file
-        # dirpath, filename = os.path.split(output_path)
-        # basename, ext = os.path.splitext(filename)
-        # python_output_path = os.path.join(dirpath, f'{basename}.py')
-        # # print(f'{python_output_path=}')
-
-        # os.makedirs(dirpath, exist_ok=True)
-
-        # with open(python_output_path, 'w') as f:
-        #     f.write(f'# {input_path}\n')
-
-    # # post bundle commands/scripts
-    # exec_npm_post_bundle(build_dir, npm_post_bundle)
-
-    ### }
 
     # copied
     # print(f'{copy_paths=}')
