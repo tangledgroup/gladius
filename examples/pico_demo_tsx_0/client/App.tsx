@@ -1,6 +1,9 @@
+import { range } from 'lodash';
 import { signal, effect, render } from 'gladius';
 
 const [count, setCount] = signal(0);
+
+console.log(range(10));
 
 const ClickedButton = (props: any) => {
   effect(() => {

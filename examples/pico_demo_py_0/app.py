@@ -1,19 +1,15 @@
 from gladius import create_app, run_app, h
 
-# import client.app
-import client.App # type: ignore
-import client.style # type: ignore
+import client.app
 
 
 page, app = create_app(
     npm={
-        '@picocss/pico': [],
-        'lodash': ['index.js'], # 'index.js' is required if used in python
+        '@picocss/pico': ['css/pico.css', 'css/pico.colors.css'],
+        'lodash': ['index.js'],
     },
     ready=[
-        # client.app,
-        client.App,
-        client.style,
+        client.app,
     ],
 )
 
