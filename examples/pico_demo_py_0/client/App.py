@@ -20,7 +20,7 @@ def ClickedButton(props):
 
     with h.div() as el:
         with h.button({'class': 'primary', 'onlick': button_onclick}):
-            h.text('Click me' if count() == 0 else 'Clicked {count()} time(s)')
+            h.text('Click me' if count() == 0 else f'Clicked {count()} time(s)')
 
         h.br()
 
@@ -50,6 +50,6 @@ def fn():
     def fn2():
         print('cleanup from top-level when document.body instance is released and unused anymore')
 
-    return f2
+    return fn2
 
 effect(fn)

@@ -44,16 +44,16 @@ def create_or_update_tsconfig(tsconfig: dict) -> str:
         assert 'compilerOptions' in tsconfig and 'baseUrl' in tsconfig['compilerOptions']
 
         default_tsconfig = {
-            "compilerOptions": {
+            'compilerOptions': {
                 # NOTE: key/value for "baseUrl" should be in tsconfig
                 # "baseUrl": "/tmp/gladius-bpqnncpq/node_modules",
-                "jsx": "preserve",
-                "jsxFactory": "h",
-                "jsxFragmentFactory": "Fragment",
+                'jsx': 'preserve',
+                'jsxFactory': 'h',
+                'jsxFragmentFactory': 'Fragment',
             },
-            "include": [
-                "**/*.ts",
-                "**/*.tsx",
+            'include': [
+                '**/*.ts',
+                '**/*.tsx',
             ],
         }
 

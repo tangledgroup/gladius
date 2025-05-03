@@ -16,6 +16,7 @@ const ClickedButton = (props: any) => {
       <button class="primary" onclick={e => setCount(count() + 1)}>
         {count() == 0 ? 'Click me' : `Clicked ${count()} time(s)`}
       </button>
+
       <br />
     </div>
   );
@@ -31,11 +32,14 @@ const App = (props: any) => {
   return (
     <div class="container">
       <h1>Hello there</h1>
-      <ClickedButton />
-      <ClickedButton />
-      <ClickedButton />
-      <ClickedButton />
-      <ClickedButton />
+
+      <div>
+        <ClickedButton />
+        <ClickedButton />
+        <ClickedButton />
+        <ClickedButton />
+        <ClickedButton />
+      </div>
     </div>
   );
 };

@@ -89,16 +89,16 @@ function render(newElement: any, container: any): any {
 }
 
 window.h = h;
-window.Fragment = null; // FIXME: implement
+window.Fragment = h;
 window.signal = signal;
 window.effect = effect;
-window.morph = morph;
+// window.morph = morph;
 window.render = render;
 
 export {
   h,
   signal,
   effect,
-  morph,
+  // morph,
   render,
 };

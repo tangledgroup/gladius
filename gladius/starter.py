@@ -10,20 +10,16 @@ from aiohttp import web
 from .aiohttp import aiohttp_middlewares
 from .hyperscript import h, HNode
 from .utils import get_gladius_cache, split_name_and_version
-from .npm import install_npm_packages, exec_esbuild_command
+from .npm import install_npm_packages, exec_npm_command, exec_esbuild_command
 from .imports import (
     JsModuleType,
     TsModuleType,
     JsxModuleType,
     TsxModuleType,
-    # CssModuleType,
+    CssModuleType,
     # WasmModuleType,
     local_import_tracker,
 )
-# from . import _client_gladius
-
-print(f'{__name__=}')
-print(f'{__file__=}')
 
 DEFAULT_APP_INIT_ARGS = {
     'client_max_size': 1024 ** 3,
@@ -36,6 +32,7 @@ def create_app(
     description: str='Gladius',
     static_path: str='static',
     npm: Union[dict[str, Any], list[str]]={},
+    # npm_post_bundle: list[list[str]]=[],
     ready: list[ModuleType] | ModuleType=[],
     app_init_args: dict=DEFAULT_APP_INIT_ARGS,
 ) -> tuple[HNode, web.Application]:
@@ -82,6 +79,9 @@ def create_app(
     if isinstance(ready, ModuleType):
         ready = [ready]
 
+    assert all([isinstance(n, ModuleType) for n in ready])
+
+    # root_path
     root_path: str = os.getcwd()
 
     # remove/create "__app__" directory
@@ -109,6 +109,75 @@ def create_app(
     gladius_cache_path, gladius_cache = get_gladius_cache()
     build_dir: str = gladius_cache['build_dir']
     # print(f'{gladius_cache=} {build_dir=}')
+
+    ### {
+
+    # check npm_post_bundle
+    is_tailwindcss: bool = False
+
+    for k, v in npm.items():
+        n, v = split_name_and_version(k)
+
+        if n == 'tailwindcss':
+            is_tailwindcss = True
+            break
+
+    for m in ready:
+        if not isinstance(m, CssModuleType):
+            continue
+
+        # input_path = os.path.relpath(m.path)
+        # _, filename = os.path.split(input_path)
+        # output_path = os.path.join(static_path, '__app__', input_path)
+        # dest_dirpath = os.path.join(dest_npm_path, output_path)
+        #
+        # if not (os.path.exists(dest_dirpath) and os.path.isdir(dest_dirpath)):
+        #     os.makedirs(dest_dirpath, exist_ok=True)
+        #
+        # dest_path = os.path.join(dest_dirpath, n)
+        # exec_esbuild_command(build_dir, src_path, dest_path)
+
+        # print(f'{output_path=}')
+        src_path: str = os.path.relpath(m.path)
+        # dest_path: str = os.path.join(app_path, output_path)
+        dest_path: str = os.path.join(app_path, src_path)
+
+        if is_tailwindcss:
+            cmd = ['@tailwindcss/cli', '-i', src_path, '-o', dest_path]
+        else:
+            cmd = []
+
+        print(f'{cmd=}')
+
+        if cmd:
+            exec_npm_command(build_dir, cmd)
+
+        href = '/' + os.path.join(os.path.relpath(dest_path))
+        print(f'{href=}')
+
+        with page['head']:
+            h.link({'rel': 'stylesheet', 'href': href})
+
+        # href = '/' + os.path.join(os.path.relpath(output_path))
+        # print(f'{href=}')
+        # page_link = {'rel': 'stylesheet', 'href': href}
+        # page_links.append(page_link)
+
+        # # generate python placeholder/empty file
+        # dirpath, filename = os.path.split(output_path)
+        # basename, ext = os.path.splitext(filename)
+        # python_output_path = os.path.join(dirpath, f'{basename}.py')
+        # # print(f'{python_output_path=}')
+
+        # os.makedirs(dirpath, exist_ok=True)
+
+        # with open(python_output_path, 'w') as f:
+        #     f.write(f'# {input_path}\n')
+
+    # # post bundle commands/scripts
+    # exec_npm_post_bundle(build_dir, npm_post_bundle)
+
+    ### }
 
     # copied
     # print(f'{copy_paths=}')
@@ -209,6 +278,8 @@ def create_app(
 
         if isinstance(n, (JsModuleType, TsModuleType, JsxModuleType, TsxModuleType)):
             embed_js_module(n)
+        elif isinstance(n, CssModuleType):
+            pass
         else:
             with page['head']:
                 source = f'import sys\nsys.path = ["static/__app__"]\nimport {n.__name__}'
@@ -230,22 +301,11 @@ def create_app(
         bundle_path: str = '/' + os.path.relpath(outfile)
 
         with page['head']:
-            # h.script({'type': 'module', 'defer': None}, "import * as gladius from '/static/__app__/gladius.js'; window.gladius = gladius;")
-
             h.script(
                 {'type': 'module', 'defer': None},
                 f"import * as _ from '{bundle_path}?v={randint(0, 2 ** 32)}';"
             )
 
-    '''
-    if isinstance(ready, ModuleType):
-        embed_module(ready)
-    elif isinstance(ready, list):
-        assert all([isinstance(n, ModuleType) for n in ready])
-
-        for n in ready:
-            embed_module(n)
-    '''
     assert all([isinstance(n, ModuleType) for n in ready])
 
     for n in ready:
@@ -257,8 +317,8 @@ def create_app(
     app = web.Application(middlewares=aiohttp_middlewares, **app_init_args)
 
     async def favicon_handler(request):
-        # return web.FileResponse(os.path.join(os.path.split(_client_gladius.__file__)[0], 'favicon.png'))
-        return web.FileResponse(os.path.join(os.path.split(__file__)[0], 'favicon.png'))
+        dest_path: str = os.path.join(os.path.split(__file__)[0], 'favicon.png')
+        return web.FileResponse(dest_path)
 
     async def page_handler(request):
         return page
@@ -269,4 +329,5 @@ def create_app(
     ])
 
     app.router.add_static('/static', static_path)
+    print(f'{app=}')
     return page, app

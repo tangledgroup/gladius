@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 from tqdm import tqdm
 from nodejs_wheel import npm, npx
 
+# from .imports import CssModuleType
 from .utils import get_gladius_cache, save_gladius_cache, create_or_update_tsconfig
 from .utils import split_name_and_version, hash_npm_packages
 
