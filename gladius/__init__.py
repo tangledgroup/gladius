@@ -12,7 +12,8 @@ from ._client_gladius import window, document, bind # type: ignore # noqa
 from ._client_gladius import JSObject, this, Date, JSON, Math, NULL, Number, RegExp, String, UNDEFINED # type: ignore # noqa
 from ._client_gladius import export # type: ignore # noqa
 
-from .hyperscript import * # noqa
+from ._server_hyperscript import * # noqa
+
 from .imports import * # noqa
 from .starter import * # noqa
 from .aiohttp import * # noqa

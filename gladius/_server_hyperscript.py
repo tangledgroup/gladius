@@ -1,11 +1,66 @@
-__all__ = ['h', 'render', 'define']
+__all__ = ['h', 'render']
 
 import json
 import inspect
 from dataclasses import dataclass
 from typing import Any, Optional, Union, Callable
 
-from .defs import SVG_TAGS, VOID_TAGS, CONTAINER_TAGS, BOOLEAN_PROPERTIES
+
+SVG_TAGS: set[str] = {
+    'a', 'animate', 'animateMotion', 'animateTransform',
+    'circle', 'clipPath',
+    'defs', 'desc',
+    'ellipse',
+    'feBlend', 'feColorMatrix', 'feComponentTransfer', 'feComposite',
+    'feConvolveMatrix', 'feDiffuseLighting', 'feDisplacementMap',
+    'feDistantLight', 'feDropShadow', 'feFlood', 'feFuncA', 'feFuncB',
+    'feFuncG', 'feFuncR', 'feGaussianBlur', 'feImage', 'feMerge', 'feMergeNode',
+    'feMorphology', 'feOffset', 'fePointLight', 'feSpecularLighting',
+    'feSpotLight', 'feTile', 'feTurbulence', 'filter', 'foreignObject',
+    'g',
+    'image',
+    'line', 'linearGradient',
+    'marker', 'mask', 'metadata', 'mpath',
+    'path', 'pattern', 'polygon', 'polyline',
+    'radialGradient', 'rect',
+    'script', 'set', 'stop', 'style', 'svg', 'switch', 'symbol',
+    'text', 'textPath', 'title', 'tspan',
+    'use',
+    'view',
+}
+
+
+VOID_TAGS: set[str] = {
+    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link',
+    'meta', 'param', 'source', 'track', 'wbr',
+}
+
+
+CONTAINER_TAGS: set[str] = {
+    'a', 'abbr', 'address', 'article', 'aside', 'audio', 'b', 'bdi', 'bdo',
+    'blockquote', 'body', 'button', 'canvas', 'caption', 'cite', 'code',
+    'colgroup', 'data', 'datalist', 'dd', 'del', 'details', 'dfn',
+    'dialog', 'div', 'dl', 'dt', 'em', 'fieldset', 'figcaption',
+    'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'head', 'header', 'hgroup', 'html', 'i', 'iframe', 'ins', 'kbd',
+    'label', 'legend', 'li', 'main', 'map', 'mark', 'menu', 'meter',
+    'nav', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output',
+    'p', 'picture', 'pre', 'progress', 'q', 'rb', 'rp', 'rt', 'rtc', 'ruby',
+    's', 'samp', 'script', 'section', 'select', 'slot', 'small', 'span',
+    'strong', 'style', 'sub', 'summary', 'sup', 'table', 'tbody',
+    'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time',
+    'title', 'tr', 'u', 'ul', 'var', 'video',
+
+    *SVG_TAGS,
+}
+
+BOOLEAN_PROPERTIES: list[str] = [
+    'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked',
+    'controls', 'default', 'defer', 'disabled', 'formnovalidate',
+    'hidden', 'ismap', 'loop', 'multiple', 'muted', 'nomodule',
+    'novalidate', 'open', 'playsinline', 'readonly', 'required',
+    'reversed', 'selected', 'sortable',
+]
 
 
 @dataclass(init=False)
@@ -36,18 +91,6 @@ class HNode:
             raise exc_val
 
 
-    def __getitem__(self, key: str) -> 'HNode':
-        global h
-        assert isinstance(key, str)
-        assert key in (SVG_TAGS | VOID_TAGS | CONTAINER_TAGS) or key in h.defined_elements
-
-        for n in self.children:
-            if n.type == key: # type: ignore
-                return n
-
-        raise KeyError(f'Missing: {key!r}')
-
-
 @dataclass(init=False)
 class Text(HNode):
     def __init__(self, children):
@@ -57,12 +100,10 @@ class Text(HNode):
 
 
 class H:
-    defined_elements: dict[str, Any]
     element_scopes: list[HNode] # used for elements using `with` statement
 
 
     def __init__(self):
-        self.defined_elements = {'del_': 'del', 'Text': Text}
         self.element_scopes = []
 
 
@@ -81,41 +122,6 @@ class H:
             parent_node.children.append(node)
 
         return node
-
-
-    def __getattr__(self, attr: str) -> Any:
-        def _node_fn(props: Optional[dict[str, Any]]=None, *children) -> HNode:
-            global h
-            type: Union[str, Callable[[], HNode], Callable[[dict[str, Any]], HNode]]
-
-            if attr in self.defined_elements:
-                type = self.defined_elements[attr]
-            else:
-                type = attr
-
-            node = HNode(
-                type=type,
-                props=props,
-                children=list(children),
-            )
-
-            if h.element_scopes:
-                parent_node: HNode = h.element_scopes[-1]
-
-                for child in children:
-                    if child in list(parent_node.children):
-                        parent_node.children.remove(child)
-
-                parent_node.children.append(node)
-
-            return node
-
-        return _node_fn
-
-
-    def define(self, fn: Callable):
-        self.defined_elements[fn.__name__] = fn
-        return fn
 
 
     def text(self, text: str) -> HNode:
@@ -137,7 +143,6 @@ def render(node: str | HNode, ident: int=0) -> str:
     ident_str: str = ' ' * (ident * 2)
     text_ident_str: str = ' ' * ((ident + 1) * 2)
 
-    # print('!', node)
     if isinstance(node, str):
         return f'{text_ident_str}{node}'
     elif isinstance(node, HNode) and node.type == 'Text':
@@ -194,7 +199,7 @@ def render(node: str | HNode, ident: int=0) -> str:
         elif len(args_names) == 1:
             type_node: HNode = type(props) # type: ignore
         else:
-            raise ValueError(f'Unexpected number of paramaters: {len(args_names)}')
+            raise ValueError(f'Unexpected number of parameters: {len(args_names)}')
 
         rendered_node = render(type_node, ident=ident)
     else:
@@ -207,4 +212,3 @@ def render(node: str | HNode, ident: int=0) -> str:
 
 
 h = H()
-define = h.define

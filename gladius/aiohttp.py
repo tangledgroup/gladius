@@ -13,7 +13,7 @@ import sys
 from aiohttp import web
 from aiohttp.web import middleware
 
-from .hyperscript import HNode, render
+from ._server_hyperscript import HNode, render
 
 
 @middleware

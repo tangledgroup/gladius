@@ -8,7 +8,7 @@ from typing import Any, Union, Callable
 from aiohttp import web
 
 from .aiohttp import aiohttp_middlewares
-from .hyperscript import h, HNode
+from ._server_hyperscript import h, HNode
 from .utils import get_gladius_cache, split_name_and_version
 from .npm import install_npm_packages, exec_npm_command, exec_esbuild_command
 from .imports import (
